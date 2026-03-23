@@ -69,6 +69,7 @@ export default function App() {
     const nq={...q,id:Date.now().toString(),quoteNumber:`${SVC_PREFIXES[q.service]}-${yr}-${String(cnt).padStart(4,"0")}`,status:"draft",createdAt:new Date().toISOString()};
     setQuotes(prev=>[nq,...prev]); setSelId(nq.id); navigate("detail");
   };
+  const deleteQuote = id => setQuotes(prev=>prev.filter(q=>q.id!==id));
 
   if(printQ) return <PrintView quote={printQ} company={company} onClose={()=>setPrintQ(null)}/>;
 
@@ -92,7 +93,7 @@ export default function App() {
         {screen==="sanding"   && <QuoteForm service="sanding"    pricing={pricing.sanding}    quotes={quotes} onSave={saveQuote} onBack={goBack}/>}
         {screen==="installing"&& <QuoteForm service="installing" pricing={pricing.installing} quotes={quotes} onSave={saveQuote} onBack={goBack}/>}
         {screen==="painting"  && <QuoteForm service="painting"   pricing={pricing.painting}   quotes={quotes} onSave={saveQuote} onBack={goBack}/>}
-        {screen==="quotes"    && <DashboardScreen quotes={quotes} onSelect={id=>{setSelId(id);navigate("detail");}} onDup={dupQuote} onStatus={updateStatus}/>}
+        {screen==="quotes"    && <DashboardScreen quotes={quotes} onSelect={id=>{setSelId(id);navigate("detail");}} onDup={dupQuote} onStatus={updateStatus} onDelete={deleteQuote}/>}
         {screen==="detail"    && selQuote && <DetailScreen quote={selQuote} onPrint={()=>setPrintQ(selQuote)} onStatus={updateStatus} onDup={dupQuote}/>}
         {screen==="settings"  && <SettingsScreen pricing={pricing} setPricing={setPricing} company={company} setCompany={setCompany}/>}
       </main>
@@ -364,8 +365,9 @@ function QuoteForm({service,pricing,quotes,onSave,onBack}) {
   );
 }
 
-function DashboardScreen({quotes,onSelect,onDup,onStatus}) {
+function DashboardScreen({quotes,onSelect,onDup,onStatus,onDelete}) {
   const [search,setSearch]=useState(""); const [fSvc,setFSvc]=useState("all"); const [fSt,setFSt]=useState("all");
+  const [confirmDel,setConfirmDel]=useState(null);
   const filtered=quotes.filter(q=>{
     const s=search.toLowerCase();
     const ms=!s||q.quoteNumber.toLowerCase().includes(s)||q.customerName.toLowerCase().includes(s)||(q.jobAddress||"").toLowerCase().includes(s);
@@ -402,25 +404,49 @@ function DashboardScreen({quotes,onSelect,onDup,onStatus}) {
         ? <div style={{textAlign:"center",padding:"50px 20px"}}><div style={{fontSize:44,marginBottom:12}}>📋</div><div style={{fontSize:13,color:"#7D8590"}}>{quotes.length===0?"No quotes yet.\nCreate your first one from Home!":"No quotes match your filters."}</div></div>
         : <div style={{display:"flex",flexDirection:"column",gap:10}}>
             {filtered.map(q=>(
-              <div key={q.id} onClick={()=>onSelect(q.id)} style={{background:"#161B22",border:"1px solid #21262D",borderRadius:14,padding:"14px",cursor:"pointer",transition:"background 0.1s"}}>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
-                  <div style={{display:"flex",alignItems:"center",gap:10}}>
-                    <div style={{width:38,height:38,borderRadius:10,background:SVC_COLORS[q.service]+"22",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}>{SVC_ICONS[q.service]}</div>
-                    <div>
-                      <div style={{fontSize:14,fontWeight:700,color:"#E6EDF3"}}>{q.quoteNumber}</div>
-                      <div style={{fontSize:12,color:"#7D8590"}}>{q.customerName}</div>
+              <div key={q.id} style={{background:"#161B22",border:"1px solid #21262D",borderRadius:14,padding:"14px",transition:"background 0.1s"}}>
+                <div onClick={()=>onSelect(q.id)} style={{cursor:"pointer"}}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
+                    <div style={{display:"flex",alignItems:"center",gap:10}}>
+                      <div style={{width:38,height:38,borderRadius:10,background:SVC_COLORS[q.service]+"22",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}>{SVC_ICONS[q.service]}</div>
+                      <div>
+                        <div style={{fontSize:14,fontWeight:700,color:"#E6EDF3"}}>{q.quoteNumber}</div>
+                        <div style={{fontSize:12,color:"#7D8590"}}>{q.customerName}</div>
+                      </div>
+                    </div>
+                    <div style={{display:"flex",alignItems:"center",gap:8}}>
+                      <Pill status={q.status}/>
                     </div>
                   </div>
-                  <Pill status={q.status}/>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",paddingLeft:48}}>
+                    <span style={{fontSize:11,color:"#7D8590"}}>{q.jobAddress||""}{q.city?`, ${q.city}`:""}</span>
+                    <span style={{fontSize:17,fontWeight:800,color:SVC_COLORS[q.service]}}>${fmt(q.total)}</span>
+                  </div>
                 </div>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",paddingLeft:48}}>
-                  <span style={{fontSize:11,color:"#7D8590"}}>{q.jobAddress||""}{q.city?`, ${q.city}`:""}</span>
-                  <span style={{fontSize:17,fontWeight:800,color:SVC_COLORS[q.service]}}>${fmt(q.total)}</span>
+                <div style={{display:"flex",justifyContent:"flex-end",marginTop:8,paddingTop:8,borderTop:"1px solid #21262D44"}}>
+                  <button onClick={(e)=>{e.stopPropagation();setConfirmDel(q);}} style={{background:"#DC262622",border:"1px solid #DC262644",borderRadius:8,padding:"6px 12px",cursor:"pointer",display:"flex",alignItems:"center",gap:5,color:"#F87171",fontSize:12,fontWeight:600}}>🗑️ Delete</button>
                 </div>
               </div>
             ))}
           </div>
       }
+
+      {/* Delete Confirmation Modal */}
+      {confirmDel&&(
+        <div style={{position:"fixed",top:0,left:0,right:0,bottom:0,background:"rgba(0,0,0,0.7)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:100,padding:20}} onClick={()=>setConfirmDel(null)}>
+          <div onClick={e=>e.stopPropagation()} style={{background:"#161B22",border:"1px solid #21262D",borderRadius:16,padding:24,maxWidth:340,width:"100%",textAlign:"center"}}>
+            <div style={{fontSize:40,marginBottom:12}}>🗑️</div>
+            <div style={{fontSize:16,fontWeight:700,color:"#E6EDF3",marginBottom:6}}>Delete Quote?</div>
+            <div style={{fontSize:13,color:"#7D8590",marginBottom:6}}>Are you sure you want to delete</div>
+            <div style={{fontSize:15,fontWeight:700,color:"#F87171",marginBottom:4}}>{confirmDel.quoteNumber}</div>
+            <div style={{fontSize:13,color:"#7D8590",marginBottom:20}}>{confirmDel.customerName} — ${fmt(confirmDel.total)}</div>
+            <div style={{display:"flex",gap:10}}>
+              <button onClick={()=>setConfirmDel(null)} style={{flex:1,padding:12,borderRadius:10,background:"#21262D",border:"none",color:"#7D8590",fontSize:14,fontWeight:600,cursor:"pointer"}}>Cancel</button>
+              <button onClick={()=>{onDelete(confirmDel.id);setConfirmDel(null);}} style={{flex:1,padding:12,borderRadius:10,background:"#DC2626",border:"none",color:"#fff",fontSize:14,fontWeight:700,cursor:"pointer"}}>Delete</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
