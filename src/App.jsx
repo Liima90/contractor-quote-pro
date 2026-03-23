@@ -537,7 +537,7 @@ function PrintView({quote,company,onClose}) {
   const hasCompany = company && company.name.trim();
   const companyAddr = company ? `${company.address||""}${company.city?", "+company.city:""}${company.state?", "+company.state:""}${company.zip?" "+company.zip:""}`.trim() : "";
   return (
-    <div style={{background:"#fff",minHeight:"100vh",padding:20,color:"#111",fontFamily:"Arial,sans-serif"}}>
+    <div style={{background:"#fff",height:"100vh",overflowY:"auto",WebkitOverflowScrolling:"touch",padding:20,color:"#111",fontFamily:"Arial,sans-serif"}}>
       <button onClick={onClose} style={{background:"#F97316",color:"#fff",border:"none",padding:"8px 16px",borderRadius:8,cursor:"pointer",marginBottom:16,fontWeight:700,fontSize:13}}>✕ Close Preview</button>
       <div style={{maxWidth:600,margin:"0 auto"}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",borderBottom:`3px solid ${c}`,paddingBottom:12,marginBottom:16}}>
