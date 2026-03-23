@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  
+  <!-- PWA Meta Tags -->
+  <meta name="theme-color" content="#0D1117" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="CQ Pro" />
+  <meta name="description" content="Create professional contractor job quotes in minutes" />
+  
+  <!-- PWA Manifest -->
+  <link rel="manifest" href="/manifest.json" />
+  
+  <!-- Icons -->
+  <link rel="icon" type="image/svg+xml" href="/icon.svg" />
+  <link rel="apple-touch-icon" href="/icon-192.png" />
+  
+  <title>ContractorQuote Pro</title>
+  
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    body { background: #0D1117; overflow: hidden; }
+    /* Splash screen while loading */
+    #splash { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; background: #0D1117; color: #fff; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+    #splash .icon { font-size: 64px; margin-bottom: 16px; }
+    #splash .title { font-size: 24px; font-weight: 800; }
+    #splash .title span { color: #F97316; }
+    #splash .sub { font-size: 13px; color: #7D8590; margin-top: 8px; }
+  </style>
+</head>
+<body>
+  <div id="root">
+    <div id="splash">
+      <div class="icon">✏️</div>
+      <div class="title">ContractorQuote <span>Pro</span></div>
+      <div class="sub">Loading...</div>
+    </div>
+  </div>
+  <script type="module" src="/src/main.jsx"></script>
+</body>
+</html>
