@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 
 const DEFAULT_PRICING = {
   sanding: { sanding_rate: 2.50, stain_rate: 0.75, extra_coat_rate: 0.50, stairs_rate: 45, board_repair_rate: 25, furniture_moving_fee: 150, travel_fee: 75, minimum_job_fee: 350, deposit_pct: 50, tax_pct: 0 },
@@ -33,15 +33,24 @@ function Toggle({label,value,onChange}) {
   );
 }
 
+// LocalStorage helpers
+const loadData = (key, fallback) => { try { const d = localStorage.getItem(key); return d ? JSON.parse(d) : fallback; } catch { return fallback; } };
+const saveData = (key, val) => { try { localStorage.setItem(key, JSON.stringify(val)); } catch {} };
+
 export default function App() {
-  const [quotes,setQuotes] = useState([]);
-  const [pricing,setPricing] = useState(DEFAULT_PRICING);
-  const [company,setCompany] = useState({name:"",phone:"",email:"",address:"",city:"",state:"",zip:"",license:""});
+  const [quotes,setQuotes] = useState(()=>loadData("cqp_quotes",[]));
+  const [pricing,setPricing] = useState(()=>loadData("cqp_pricing",DEFAULT_PRICING));
+  const [company,setCompany] = useState(()=>loadData("cqp_company",{name:"",phone:"",email:"",address:"",city:"",state:"",zip:"",license:""}));
   const [screen,setScreen] = useState("home");
   const [prevScreen,setPrevScreen] = useState(null);
   const [selId,setSelId] = useState(null);
   const [printQ,setPrintQ] = useState(null);
   const selQuote = quotes.find(q=>q.id===selId);
+
+  // Auto-save to localStorage whenever data changes
+  useEffect(()=>saveData("cqp_quotes",quotes),[quotes]);
+  useEffect(()=>saveData("cqp_pricing",pricing),[pricing]);
+  useEffect(()=>saveData("cqp_company",company),[company]);
 
   const navigate = (to) => { setPrevScreen(screen); setScreen(to); };
   const goBack = () => {
