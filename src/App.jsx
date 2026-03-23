@@ -38,19 +38,27 @@ export default function App() {
   const [pricing,setPricing] = useState(DEFAULT_PRICING);
   const [company,setCompany] = useState({name:"",phone:"",email:"",address:"",city:"",state:"",zip:"",license:""});
   const [screen,setScreen] = useState("home");
+  const [prevScreen,setPrevScreen] = useState(null);
   const [selId,setSelId] = useState(null);
   const [printQ,setPrintQ] = useState(null);
   const selQuote = quotes.find(q=>q.id===selId);
 
+  const navigate = (to) => { setPrevScreen(screen); setScreen(to); };
+  const goBack = () => {
+    if(screen==="detail") { navigate("quotes"); return; }
+    if(prevScreen && prevScreen !== screen) { const p=prevScreen; setPrevScreen(null); setScreen(p); return; }
+    setScreen("home");
+  };
+
   const saveQuote = q => {
     setQuotes(prev => prev.find(x=>x.id===q.id) ? prev.map(x=>x.id===q.id?q:x) : [q,...prev]);
-    setSelId(q.id); setScreen("detail");
+    setSelId(q.id); navigate("detail");
   };
   const updateStatus = (id,status) => setQuotes(prev=>prev.map(q=>q.id===id?{...q,status}:q));
   const dupQuote = q => {
     const yr=new Date().getFullYear(); const cnt=quotes.filter(x=>x.service===q.service).length+1;
     const nq={...q,id:Date.now().toString(),quoteNumber:`${SVC_PREFIXES[q.service]}-${yr}-${String(cnt).padStart(4,"0")}`,status:"draft",createdAt:new Date().toISOString()};
-    setQuotes(prev=>[nq,...prev]); setSelId(nq.id); setScreen("detail");
+    setQuotes(prev=>[nq,...prev]); setSelId(nq.id); navigate("detail");
   };
 
   if(printQ) return <PrintView quote={printQ} company={company} onClose={()=>setPrintQ(null)}/>;
@@ -62,20 +70,20 @@ export default function App() {
       {/* Header */}
       <header style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 16px",background:"#161B22",borderBottom:"1px solid #21262D",flexShrink:0,zIndex:10}}>
         <div style={{display:"flex",alignItems:"center",gap:8}}>
-          {!["home","quotes","settings"].includes(screen)
-            ? <button onClick={()=>setScreen(screen==="detail"?"quotes":"home")} style={{background:"none",border:"none",color:"#F97316",fontSize:15,fontWeight:700,cursor:"pointer",padding:0}}>← Back</button>
-            : <><span style={{fontSize:22}}>✏️</span><span style={{fontSize:17,fontWeight:800,color:"#fff"}}>ContractorQuote <span style={{color:"#F97316"}}>Pro</span></span></>}
+          {screen==="home"
+            ? <><span style={{fontSize:22}}>✏️</span><span style={{fontSize:17,fontWeight:800,color:"#fff"}}>ContractorQuote <span style={{color:"#F97316"}}>Pro</span></span></>
+            : <button onClick={goBack} style={{background:"none",border:"none",color:"#F97316",fontSize:15,fontWeight:700,cursor:"pointer",padding:0}}>← Back</button>}
         </div>
         <span style={{background:"#F9731622",color:"#F97316",border:"1px solid #F9731655",padding:"3px 10px",borderRadius:20,fontSize:11,fontWeight:700}}>PRO</span>
       </header>
 
       {/* Main */}
       <main style={{flex:1,overflowY:"auto",overflowX:"hidden",paddingBottom:75}}>
-        {screen==="home"      && <HomeScreen setScreen={setScreen} quotes={quotes}/>}
-        {screen==="sanding"   && <QuoteForm service="sanding"    pricing={pricing.sanding}    quotes={quotes} onSave={saveQuote} onBack={()=>setScreen("home")}/>}
-        {screen==="installing"&& <QuoteForm service="installing" pricing={pricing.installing} quotes={quotes} onSave={saveQuote} onBack={()=>setScreen("home")}/>}
-        {screen==="painting"  && <QuoteForm service="painting"   pricing={pricing.painting}   quotes={quotes} onSave={saveQuote} onBack={()=>setScreen("home")}/>}
-        {screen==="quotes"    && <DashboardScreen quotes={quotes} onSelect={id=>{setSelId(id);setScreen("detail");}} onDup={dupQuote} onStatus={updateStatus}/>}
+        {screen==="home"      && <HomeScreen setScreen={navigate} quotes={quotes}/>}
+        {screen==="sanding"   && <QuoteForm service="sanding"    pricing={pricing.sanding}    quotes={quotes} onSave={saveQuote} onBack={goBack}/>}
+        {screen==="installing"&& <QuoteForm service="installing" pricing={pricing.installing} quotes={quotes} onSave={saveQuote} onBack={goBack}/>}
+        {screen==="painting"  && <QuoteForm service="painting"   pricing={pricing.painting}   quotes={quotes} onSave={saveQuote} onBack={goBack}/>}
+        {screen==="quotes"    && <DashboardScreen quotes={quotes} onSelect={id=>{setSelId(id);navigate("detail");}} onDup={dupQuote} onStatus={updateStatus}/>}
         {screen==="detail"    && selQuote && <DetailScreen quote={selQuote} onPrint={()=>setPrintQ(selQuote)} onStatus={updateStatus} onDup={dupQuote}/>}
         {screen==="settings"  && <SettingsScreen pricing={pricing} setPricing={setPricing} company={company} setCompany={setCompany}/>}
       </main>
@@ -83,7 +91,7 @@ export default function App() {
       {/* Bottom Nav */}
       <nav style={{display:"flex",justifyContent:"space-around",padding:"8px 0 16px",background:"#161B22",borderTop:"1px solid #21262D",position:"fixed",bottom:0,left:"50%",transform:"translateX(-50%)",width:"100%",maxWidth:430,zIndex:20}}>
         {[{id:"home",icon:"🏠",label:"Home"},{id:"quotes",icon:"📋",label:"Quotes"},{id:"settings",icon:"⚙️",label:"Settings"}].map(i=>(
-          <button key={i.id} onClick={()=>setScreen(i.id)} style={{display:"flex",flexDirection:"column",alignItems:"center",gap:2,background:"none",border:"none",padding:"4px 24px",cursor:"pointer"}}>
+          <button key={i.id} onClick={()=>navigate(i.id)} style={{display:"flex",flexDirection:"column",alignItems:"center",gap:2,background:"none",border:"none",padding:"4px 24px",cursor:"pointer"}}>
             <span style={{fontSize:22}}>{i.icon}</span>
             <span style={{fontSize:10,fontWeight:700,color:curNav===i.id?"#F97316":"#7D8590",letterSpacing:"0.3px"}}>{i.label}</span>
           </button>
