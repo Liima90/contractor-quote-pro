@@ -410,51 +410,10 @@ function DashboardScreen({quotes,onSelect,onDup,onStatus}) {
 
 function DetailScreen({quote,onPrint,onStatus,onDup}) {
   const [showMenu,setShowMenu]=useState(false);
-  const [emailMsg,setEmailMsg]=useState(null);
   const c=SVC_COLORS[quote.service];
 
-  const sendEmail = () => {
-    if(!quote.customerEmail){setEmailMsg({type:"error",text:"No email address on file for this customer."});setTimeout(()=>setEmailMsg(null),3000);return;}
-    const nl = "\n";
-    const line = "————————————————————————";
-    const itemLines = quote.items.map(i=>`  ${i.label}  —  ${fmt(i.qty)} ${i.unit} × $${fmt(i.up)}  =  $${fmt(i.total)}`).join(nl);
-    const addr = `${quote.jobAddress||""}${quote.city?", "+quote.city:""}${quote.state?", "+quote.state:""}${quote.zip?" "+quote.zip:""}`;
-    const body = [
-      `Hi ${quote.customerName.split(" ")[0]},`,
-      ``,
-      `Thank you for your interest! Please find your quote details below.`,
-      ``,
-      `${line}`,
-      `QUOTE #${quote.quoteNumber}`,
-      `Service: ${SVC_NAMES[quote.service]}`,
-      `Date: ${fmtDate(quote.jobDate)}`,
-      `Valid Until: ${fmtDate(quote.validUntil)}`,
-      addr ? `Job Address: ${addr}` : "",
-      `${line}`,
-      ``,
-      `LINE ITEMS:`,
-      itemLines,
-      ``,
-      `${line}`,
-      `Subtotal:   $${fmt(quote.subtotal)}`,
-      quote.discountAmt>0 ? `Discount:  -$${fmt(quote.discountAmt)}` : "",
-      quote.taxAmt>0 ? `Tax:        $${fmt(quote.taxAmt)}` : "",
-      `TOTAL:      $${fmt(quote.total)}`,
-      ``,
-      `Deposit Required: $${fmt(quote.deposit)}`,
-      `${line}`,
-      quote.notes ? `\nNotes: ${quote.notes}\n` : "",
-      ``,
-      `If you have any questions or would like to proceed, please reply to this email or give us a call.`,
-      ``,
-      `Thank you for your business!`,
-    ].filter(l=>l!==""||(l===""&&true)).join(nl);
-
-    const subject = `Quote #${quote.quoteNumber} — ${SVC_NAMES[quote.service]} — $${fmt(quote.total)}`;
-    const mailto = `mailto:${encodeURIComponent(quote.customerEmail)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-    window.open(mailto,"_blank");
-    setEmailMsg({type:"success",text:`Email draft opened for ${quote.customerEmail}`});
-    setTimeout(()=>setEmailMsg(null),3500);
+  const shareQuote = () => {
+    onPrint();
   };
   return (
     <div style={{padding:16}}>
@@ -507,15 +466,9 @@ function DetailScreen({quote,onPrint,onStatus,onDup}) {
         <button onClick={()=>setShowMenu(!showMenu)} style={{flex:1,padding:12,borderRadius:12,background:c+"22",border:`1px solid ${c}55`,color:c,fontSize:13,fontWeight:600,cursor:"pointer"}}>🔄 Status</button>
       </div>
 
-      <button onClick={sendEmail} style={{width:"100%",padding:13,borderRadius:12,background:"linear-gradient(135deg,#F97316,#F97316bb)",border:"none",color:"#fff",fontSize:14,fontWeight:700,cursor:"pointer",boxShadow:"0 4px 14px #F9731644",marginBottom:10,display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
-        <span>📧</span> Email Quote to Customer
+      <button onClick={shareQuote} style={{width:"100%",padding:13,borderRadius:12,background:"linear-gradient(135deg,#F97316,#F97316bb)",border:"none",color:"#fff",fontSize:14,fontWeight:700,cursor:"pointer",boxShadow:"0 4px 14px #F9731644",marginBottom:10,display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
+        <span>📤</span> Share Quote with Customer
       </button>
-
-      {emailMsg&&(
-        <div style={{background:emailMsg.type==="success"?"#0a2010":"#2a0a0a",border:`1px solid ${emailMsg.type==="success"?"#16A34A":"#DC2626"}`,color:emailMsg.type==="success"?"#4ADE80":"#F87171",padding:"10px 14px",borderRadius:10,textAlign:"center",fontWeight:600,marginBottom:10,fontSize:13}}>
-          {emailMsg.type==="success"?"✓":"⚠"} {emailMsg.text}
-        </div>
-      )}
 
       {showMenu&&(
         <div style={{background:"#161B22",border:"1px solid #21262D",borderRadius:14,padding:8,marginBottom:12}}>
@@ -538,7 +491,8 @@ function PrintView({quote,company,onClose}) {
   const companyAddr = company ? `${company.address||""}${company.city?", "+company.city:""}${company.state?", "+company.state:""}${company.zip?" "+company.zip:""}`.trim() : "";
   return (
     <div style={{background:"#fff",height:"100vh",overflowY:"auto",WebkitOverflowScrolling:"touch",padding:20,color:"#111",fontFamily:"Arial,sans-serif"}}>
-      <button onClick={onClose} style={{background:"#F97316",color:"#fff",border:"none",padding:"8px 16px",borderRadius:8,cursor:"pointer",marginBottom:16,fontWeight:700,fontSize:13}}>✕ Close Preview</button>
+      <style>{`@media print { .no-print { display: none !important; } }`}</style>
+      <button className="no-print" onClick={onClose} style={{background:"#F97316",color:"#fff",border:"none",padding:"8px 16px",borderRadius:8,cursor:"pointer",marginBottom:16,fontWeight:700,fontSize:13}}>✕ Close Preview</button>
       <div style={{maxWidth:600,margin:"0 auto"}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",borderBottom:`3px solid ${c}`,paddingBottom:12,marginBottom:16}}>
           <div>
@@ -597,7 +551,16 @@ function PrintView({quote,company,onClose}) {
         </div>
         <div style={{textAlign:"center",fontSize:11,color:"#9CA3AF",marginTop:12}}>{hasCompany ? `Thank you for choosing ${company.name}!` : "Thank you for your business!"} Quote valid until {fmtDate(quote.validUntil)}.</div>
       </div>
-      <button onClick={()=>window.print()} style={{display:"block",width:"100%",maxWidth:600,margin:"20px auto 0",padding:"13px",background:`linear-gradient(135deg,${c},${c}cc)`,color:"#fff",border:"none",borderRadius:12,fontSize:15,fontWeight:700,cursor:"pointer"}}>🖨️ Print / Save as PDF</button>
+      <div className="no-print" style={{maxWidth:600,margin:"20px auto 0",display:"flex",flexDirection:"column",gap:10,paddingBottom:20}}>
+        <button onClick={()=>{
+          if(navigator.share){
+            navigator.share({title:`Quote ${quote.quoteNumber}`,text:`Quote ${quote.quoteNumber} — ${SVC_NAMES[quote.service]} — $${fmt(quote.total)}`,url:window.location.href}).catch(()=>{});
+          } else {
+            window.print();
+          }
+        }} style={{width:"100%",padding:"14px",background:"linear-gradient(135deg,#F97316,#F97316bb)",color:"#fff",border:"none",borderRadius:12,fontSize:15,fontWeight:700,cursor:"pointer",boxShadow:"0 4px 14px #F9731644"}}>📤 Share Quote</button>
+        <button onClick={()=>window.print()} style={{width:"100%",padding:"14px",background:`linear-gradient(135deg,${c},${c}cc)`,color:"#fff",border:"none",borderRadius:12,fontSize:15,fontWeight:700,cursor:"pointer"}}>🖨️ Print / Save as PDF</button>
+      </div>
     </div>
   );
 }
