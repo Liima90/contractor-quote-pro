@@ -89,7 +89,7 @@ export default function App() {
 
       {/* Main */}
       <main style={{flex:1,overflowY:"auto",overflowX:"hidden",paddingBottom:75}}>
-        {screen==="home"      && <HomeScreen setScreen={navigate} quotes={quotes}/>}
+        {screen==="home"      && <HomeScreen setScreen={navigate}/>}
         {screen==="sanding"   && <QuoteForm service="sanding"    pricing={pricing.sanding}    quotes={quotes} onSave={saveQuote} onBack={goBack}/>}
         {screen==="installing"&& <QuoteForm service="installing" pricing={pricing.installing} quotes={quotes} onSave={saveQuote} onBack={goBack}/>}
         {screen==="painting"  && <QuoteForm service="painting"   pricing={pricing.painting}   quotes={quotes} onSave={saveQuote} onBack={goBack}/>}
@@ -111,7 +111,7 @@ export default function App() {
   );
 }
 
-function HomeScreen({setScreen,quotes}) {
+function HomeScreen({setScreen}) {
   const svcs = [
     {id:"sanding",   desc:"Sanding, staining, finish coats, repairs & stairs"},
     {id:"installing",desc:"Installation, removal, prep, trim & patterns"},
@@ -138,21 +138,6 @@ function HomeScreen({setScreen,quotes}) {
           </button>
         ))}
       </div>
-
-      {quotes.length > 0 && <>
-        <div style={{fontSize:11,fontWeight:700,color:"#7D8590",letterSpacing:"1px",marginBottom:12}}>RECENT QUOTES</div>
-        {quotes.slice(0,3).map(q=>(
-          <div key={q.id} style={{display:"flex",alignItems:"center",gap:10,padding:"12px 14px",background:"#161B22",borderRadius:12,border:"1px solid #21262D",marginBottom:8}}>
-            <span style={{fontSize:18}}>{SVC_ICONS[q.service]}</span>
-            <div style={{flex:1,minWidth:0}}>
-              <div style={{fontSize:13,fontWeight:700,color:"#E6EDF3"}}>{q.quoteNumber}</div>
-              <div style={{fontSize:11,color:"#7D8590",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{q.customerName}</div>
-            </div>
-            <Pill status={q.status}/>
-            <span style={{fontSize:15,fontWeight:700,color:SVC_COLORS[q.service],flexShrink:0}}>${fmt(q.total)}</span>
-          </div>
-        ))}
-      </>}
     </div>
   );
 }
