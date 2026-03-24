@@ -3,12 +3,13 @@ import { useState, useMemo, useEffect } from "react";
 const DEFAULT_PRICING = {
   sanding: { sanding_rate: 2.50, stain_rate: 0.75, extra_coat_rate: 0.50, stairs_rate: 45, board_repair_rate: 25, furniture_moving_fee: 150, travel_fee: 75, minimum_job_fee: 350, deposit_pct: 50, tax_pct: 0 },
   installing: { install_rate: 3.50, removal_rate: 1.25, subfloor_light_rate: 0.75, subfloor_heavy_rate: 1.50, moisture_barrier_rate: 0.45, trim_rate: 2.50, transition_strip_rate: 35, stairs_install_rate: 65, diagonal_multiplier: 1.10, herringbone_multiplier: 1.20, travel_fee: 75, minimum_job_fee: 500, deposit_pct: 50, tax_pct: 0 },
+  combo: { install_rate: 3.50, removal_rate: 1.25, subfloor_light_rate: 0.75, subfloor_heavy_rate: 1.50, moisture_barrier_rate: 0.45, trim_rate: 2.50, transition_strip_rate: 35, stairs_install_rate: 65, diagonal_multiplier: 1.10, herringbone_multiplier: 1.20, sanding_rate: 2.50, stain_rate: 0.75, extra_coat_rate: 0.50, stairs_sand_rate: 45, board_repair_rate: 25, furniture_moving_fee: 150, travel_fee: 75, minimum_job_fee: 650, deposit_pct: 50, tax_pct: 0 },
   painting: { wall_rate: 1.50, ceiling_rate: 1.25, trim_rate: 2.00, door_rate: 85, window_rate: 65, primer_rate: 0.45, minor_patch_rate: 35, major_patch_rate: 85, extra_coat_rate: 0.35, travel_fee: 75, minimum_job_fee: 300, deposit_pct: 50, tax_pct: 0 },
 };
-const SVC_ICONS = { sanding:"🪵", installing:"🔨", painting:"🎨" };
-const SVC_NAMES = { sanding:"Sanding Floors", installing:"Installing Floors", painting:"Painting" };
-const SVC_PREFIXES = { sanding:"SND", installing:"INS", painting:"PNT" };
-const SVC_COLORS = { sanding:"#D97706", installing:"#3B82F6", painting:"#16A34A" };
+const SVC_ICONS = { sanding:"🪵", installing:"🔨", combo:"🪵🔨", painting:"🎨" };
+const SVC_NAMES = { sanding:"Sanding Floors", installing:"Installing Floors", combo:"Install & Sand", painting:"Painting" };
+const SVC_PREFIXES = { sanding:"SND", installing:"INS", combo:"I+S", painting:"PNT" };
+const SVC_COLORS = { sanding:"#D97706", installing:"#3B82F6", combo:"#8B5CF6", painting:"#16A34A" };
 const STATUS_C = { draft:{bg:"#1a2030",text:"#94A3B8",border:"#334155"}, sent:{bg:"#0c2040",text:"#60A5FA",border:"#2563EB"}, approved:{bg:"#0a2010",text:"#4ADE80",border:"#16A34A"}, rejected:{bg:"#2a0a0a",text:"#F87171",border:"#DC2626"}, completed:{bg:"#1a0a2a",text:"#C084FC",border:"#7C3AED"} };
 const todayStr = () => new Date().toISOString().split("T")[0];
 const addDays = (d,n) => { const dt=new Date(d+"T12:00:00"); dt.setDate(dt.getDate()+n); return dt.toISOString().split("T")[0]; };
@@ -33,13 +34,23 @@ function Toggle({label,value,onChange}) {
   );
 }
 
-// LocalStorage helpers
-const loadData = (key, fallback) => { try { const d = localStorage.getItem(key); return d ? JSON.parse(d) : fallback; } catch { return fallback; } };
-const saveData = (key, val) => { try { localStorage.setItem(key, JSON.stringify(val)); } catch {} };
+// LocalStorage helpers — safe for environments that block storage
+const canUseStorage = (() => { try { const k='__test'; localStorage.setItem(k,'1'); localStorage.removeItem(k); return true; } catch { return false; } })();
+const loadData = (key, fallback) => { if(!canUseStorage) return fallback; try { const d = localStorage.getItem(key); return d ? JSON.parse(d) : fallback; } catch { return fallback; } };
+const saveData = (key, val) => { if(!canUseStorage) return; try { localStorage.setItem(key, JSON.stringify(val)); } catch {} };
+const loadPricing = () => {
+  const saved = loadData("cqp_pricing", null);
+  if(!saved) return DEFAULT_PRICING;
+  const merged = {};
+  for(const svc of Object.keys(DEFAULT_PRICING)){
+    merged[svc] = {...DEFAULT_PRICING[svc], ...(saved[svc]||{})};
+  }
+  return merged;
+};
 
 export default function App() {
   const [quotes,setQuotes] = useState(()=>loadData("cqp_quotes",[]));
-  const [pricing,setPricing] = useState(()=>loadData("cqp_pricing",DEFAULT_PRICING));
+  const [pricing,setPricing] = useState(()=>loadPricing());
   const [company,setCompany] = useState(()=>loadData("cqp_company",{name:"",phone:"",email:"",address:"",city:"",state:"",zip:"",license:""}));
   const [screen,setScreen] = useState("home");
   const [prevScreen,setPrevScreen] = useState(null);
@@ -73,7 +84,7 @@ export default function App() {
 
   if(printQ) return <PrintView quote={printQ} company={company} onClose={()=>setPrintQ(null)}/>;
 
-  const curNav = ["sanding","installing","painting"].includes(screen)?"home":screen==="detail"?"quotes":screen;
+  const curNav = ["sanding","installing","combo","painting"].includes(screen)?"home":screen==="detail"?"quotes":screen;
 
   return (
     <div style={{display:"flex",flexDirection:"column",height:"100vh",background:"#0D1117",color:"#E6EDF3",fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif",overflow:"hidden",maxWidth:430,margin:"0 auto"}}>
@@ -92,6 +103,7 @@ export default function App() {
         {screen==="home"      && <HomeScreen setScreen={navigate}/>}
         {screen==="sanding"   && <QuoteForm service="sanding"    pricing={pricing.sanding}    quotes={quotes} onSave={saveQuote} onBack={goBack}/>}
         {screen==="installing"&& <QuoteForm service="installing" pricing={pricing.installing} quotes={quotes} onSave={saveQuote} onBack={goBack}/>}
+        {screen==="combo"     && <QuoteForm service="combo"      pricing={pricing.combo}      quotes={quotes} onSave={saveQuote} onBack={goBack}/>}
         {screen==="painting"  && <QuoteForm service="painting"   pricing={pricing.painting}   quotes={quotes} onSave={saveQuote} onBack={goBack}/>}
         {screen==="quotes"    && <DashboardScreen quotes={quotes} onSelect={id=>{setSelId(id);navigate("detail");}} onDup={dupQuote} onStatus={updateStatus} onDelete={deleteQuote}/>}
         {screen==="detail"    && selQuote && <DetailScreen quote={selQuote} onPrint={()=>setPrintQ(selQuote)} onStatus={updateStatus} onDup={dupQuote}/>}
@@ -115,6 +127,7 @@ function HomeScreen({setScreen}) {
   const svcs = [
     {id:"sanding",   desc:"Sanding, staining, finish coats, repairs & stairs"},
     {id:"installing",desc:"Installation, removal, prep, trim & patterns"},
+    {id:"combo",     desc:"Full floor service — install & sand in one quote"},
     {id:"painting",  desc:"Walls, ceilings, trim, doors, windows & prep"},
   ];
   return (
@@ -195,6 +208,30 @@ function QuoteForm({service,pricing,quotes,onSave,onBack}) {
       const is=parseInt(instStairs)||0; if(is>0) items.push({label:"Stair Installation",qty:is,unit:"stairs",up:p.stairs_install_rate,total:is*p.stairs_install_rate});
       const mc=parseFloat(matCost)||0; if(matIncl&&mc>0) items.push({label:"Materials",qty:1,unit:"flat",up:mc,total:mc});
     }
+    if(service==="combo"){
+      const sf=parseFloat(instSqft)||0;
+      const pm=pattern==="diagonal"?p.diagonal_multiplier:pattern==="herringbone"?p.herringbone_multiplier:1;
+      // Installing items
+      if(sf>0) items.push({label:"Floor Installation",qty:sf,unit:"sqft",up:p.install_rate*pm,total:sf*p.install_rate*pm});
+      const rs=parseFloat(remSqft)||sf;
+      if(removeFloor&&rs>0) items.push({label:"Floor Removal",qty:rs,unit:"sqft",up:p.removal_rate,total:rs*p.removal_rate});
+      if(subfloor==="light"&&sf>0) items.push({label:"Subfloor Prep (Light)",qty:sf,unit:"sqft",up:p.subfloor_light_rate,total:sf*p.subfloor_light_rate});
+      if(subfloor==="heavy"&&sf>0) items.push({label:"Subfloor Prep (Heavy)",qty:sf,unit:"sqft",up:p.subfloor_heavy_rate,total:sf*p.subfloor_heavy_rate});
+      if(moisture&&sf>0) items.push({label:"Moisture Barrier",qty:sf,unit:"sqft",up:p.moisture_barrier_rate,total:sf*p.moisture_barrier_rate});
+      const tl=parseFloat(trimFt)||0; if(tl>0) items.push({label:"Trim / Baseboards",qty:tl,unit:"lin ft",up:p.trim_rate,total:tl*p.trim_rate});
+      const ts=parseInt(transStrips)||0; if(ts>0) items.push({label:"Transition Strips",qty:ts,unit:"each",up:p.transition_strip_rate,total:ts*p.transition_strip_rate});
+      const is2=parseInt(instStairs)||0; if(is2>0) items.push({label:"Stair Installation",qty:is2,unit:"stairs",up:p.stairs_install_rate,total:is2*p.stairs_install_rate});
+      const mc=parseFloat(matCost)||0; if(matIncl&&mc>0) items.push({label:"Materials",qty:1,unit:"flat",up:mc,total:mc});
+      // Sanding items
+      const sandSf=parseFloat(sqft)||sf;
+      if(sandSf>0) items.push({label:"Floor Sanding",qty:sandSf,unit:"sqft",up:p.sanding_rate,total:sandSf*p.sanding_rate});
+      if(stain&&sandSf>0) items.push({label:"Stain Application",qty:sandSf,unit:"sqft",up:p.stain_rate,total:sandSf*p.stain_rate});
+      const ec=parseInt(xCoats)||0;
+      if(ec>0&&sandSf>0) items.push({label:"Extra Finish Coats",qty:sandSf*ec,unit:"sqft",up:p.extra_coat_rate,total:sandSf*ec*p.extra_coat_rate});
+      const ss=parseInt(stairs)||0; if(ss>0) items.push({label:"Stair Sanding",qty:ss,unit:"stairs",up:p.stairs_sand_rate,total:ss*p.stairs_sand_rate});
+      const r=parseInt(repairs)||0; if(r>0) items.push({label:"Board Repairs",qty:r,unit:"boards",up:p.board_repair_rate,total:r*p.board_repair_rate});
+      if(furniture) items.push({label:"Furniture Moving",qty:1,unit:"flat",up:p.furniture_moving_fee,total:p.furniture_moving_fee});
+    }
     if(service==="painting"){
       const ws=parseFloat(wallSqft)||0; const nc=parseInt(coats)||2;
       if(ws>0) items.push({label:"Wall Painting",qty:ws*nc,unit:"sqft",up:p.wall_rate,total:ws*nc*p.wall_rate});
@@ -225,6 +262,7 @@ function QuoteForm({service,pricing,quotes,onSave,onBack}) {
     if(!addr.trim())e.addr="Required";
     if(service==="sanding"&&!sqft)e.sqft="Required";
     if(service==="installing"&&!instSqft)e.sqft="Required";
+    if(service==="combo"&&!instSqft)e.sqft="Required";
     if(service==="painting"&&!wallSqft)e.sqft="Required";
     setErrs(e); if(Object.keys(e).length) return;
     const yr=new Date().getFullYear(); const cnt=quotes.filter(q=>q.service===service).length+1;
@@ -284,6 +322,32 @@ function QuoteForm({service,pricing,quotes,onSave,onBack}) {
           <Field label="# Stairs"><input style={inp} type="number" value={instStairs} onChange={e=>setInstStairs(e.target.value)} placeholder="0"/></Field>
           <Toggle label="Materials Included?" value={matIncl} onChange={setMatIncl}/>
           {matIncl&&<Field label="Materials Cost ($)"><input style={inp} type="number" value={matCost} onChange={e=>setMatCost(e.target.value)} placeholder="0.00"/></Field>}
+        </>}
+        {service==="combo"&&<>
+          <div style={{fontSize:11,fontWeight:700,color:"#3B82F6",letterSpacing:"0.5px",marginBottom:8}}>🔨 INSTALLATION</div>
+          <Field label="Total Square Feet *" error={errs.sqft}><input style={{...inp,...(errs.sqft?{borderColor:"#F87171"}:{})}} type="number" inputMode="decimal" value={instSqft} onChange={e=>setInstSqft(e.target.value)} placeholder="e.g. 1200"/></Field>
+          <Field label="Pattern Style"><select style={inp} value={pattern} onChange={e=>setPattern(e.target.value)}><option value="straight">Straight (Standard)</option><option value="diagonal">Diagonal (+10%)</option><option value="herringbone">Herringbone (+20%)</option></select></Field>
+          <Toggle label="Remove Existing Floor?" value={removeFloor} onChange={setRemoveFloor}/>
+          {removeFloor&&<Field label="Removal Sq Ft"><input style={inp} type="number" value={remSqft} onChange={e=>setRemSqft(e.target.value)} placeholder="Same as install"/></Field>}
+          <Field label="Subfloor Prep"><select style={inp} value={subfloor} onChange={e=>setSubfloor(e.target.value)}><option value="none">None</option><option value="light">Light</option><option value="heavy">Heavy</option></select></Field>
+          <Toggle label="Moisture Barrier?" value={moisture} onChange={setMoisture}/>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginTop:8}}>
+            <Field label="Trim Lin. Ft."><input style={inp} type="number" value={trimFt} onChange={e=>setTrimFt(e.target.value)} placeholder="0"/></Field>
+            <Field label="Transition Strips"><input style={inp} type="number" value={transStrips} onChange={e=>setTransStrips(e.target.value)} placeholder="0"/></Field>
+          </div>
+          <Field label="# Stairs (Install)"><input style={inp} type="number" value={instStairs} onChange={e=>setInstStairs(e.target.value)} placeholder="0"/></Field>
+          <Toggle label="Materials Included?" value={matIncl} onChange={setMatIncl}/>
+          {matIncl&&<Field label="Materials Cost ($)"><input style={inp} type="number" value={matCost} onChange={e=>setMatCost(e.target.value)} placeholder="0.00"/></Field>}
+          <div style={{height:1,background:"#21262D",margin:"16px 0"}}/>
+          <div style={{fontSize:11,fontWeight:700,color:"#D97706",letterSpacing:"0.5px",marginBottom:8}}>🪵 SANDING</div>
+          <Field label="Sanding Sq Ft"><input style={inp} type="number" inputMode="decimal" value={sqft} onChange={e=>setSqft(e.target.value)} placeholder="Same as install if empty"/></Field>
+          <Toggle label="Include Stain?" value={stain} onChange={setStain}/>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginTop:8}}>
+            <Field label="Extra Coats"><input style={inp} type="number" value={xCoats} onChange={e=>setXCoats(e.target.value)} placeholder="0"/></Field>
+            <Field label="# Stairs (Sand)"><input style={inp} type="number" value={stairs} onChange={e=>setStairs(e.target.value)} placeholder="0"/></Field>
+          </div>
+          <Field label="Board Repairs"><input style={inp} type="number" value={repairs} onChange={e=>setRepairs(e.target.value)} placeholder="0"/></Field>
+          <Toggle label="Furniture Moving?" value={furniture} onChange={setFurniture}/>
         </>}
         {service==="painting"&&<>
           <Field label="Wall Square Feet *" error={errs.sqft}><input style={{...inp,...(errs.sqft?{borderColor:"#F87171"}:{})}} type="number" inputMode="decimal" value={wallSqft} onChange={e=>setWallSqft(e.target.value)} placeholder="e.g. 1500"/></Field>
@@ -372,7 +436,7 @@ function DashboardScreen({quotes,onSelect,onDup,onStatus,onDelete}) {
       </div>
       <input style={{...inp,marginBottom:10}} value={search} onChange={e=>setSearch(e.target.value)} placeholder="🔍  Search quotes, customers..."/>
       <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:8}}>
-        {["all","sanding","installing","painting"].map(s=>(
+        {["all","sanding","installing","combo","painting"].map(s=>(
           <button key={s} onClick={()=>setFSvc(s)} style={{padding:"5px 10px",borderRadius:20,background:fSvc===s?`${SVC_COLORS[s]||"#F97316"}22`:"#161B22",border:`1px solid ${fSvc===s?SVC_COLORS[s]||"#F97316":"#21262D"}`,color:fSvc===s?SVC_COLORS[s]||"#F97316":"#7D8590",fontSize:12,fontWeight:600,cursor:"pointer"}}>
             {s==="all"?"All":SVC_NAMES[s]?.split(" ")[0]}
           </button>
@@ -605,6 +669,7 @@ function SettingsScreen({pricing,setPricing,company,setCompany}) {
   const FIELDS={
     sanding:[["sanding_rate","Sanding Rate","$/sqft"],["stain_rate","Stain Rate","$/sqft"],["extra_coat_rate","Extra Coat","$/sqft"],["stairs_rate","Stairs","$/stair"],["board_repair_rate","Board Repair","$/board"],["furniture_moving_fee","Furniture Moving","$ flat"],["travel_fee","Travel Fee","$ flat"],["minimum_job_fee","Minimum Job","$"],["deposit_pct","Deposit","%"],["tax_pct","Tax","%"]],
     installing:[["install_rate","Install Rate","$/sqft"],["removal_rate","Removal","$/sqft"],["subfloor_light_rate","Subfloor Light","$/sqft"],["subfloor_heavy_rate","Subfloor Heavy","$/sqft"],["moisture_barrier_rate","Moisture Barrier","$/sqft"],["trim_rate","Trim","$/lin ft"],["transition_strip_rate","Transition Strip","$/each"],["stairs_install_rate","Stair Install","$/stair"],["diagonal_multiplier","Diagonal Mult","×"],["herringbone_multiplier","Herringbone Mult","×"],["travel_fee","Travel Fee","$ flat"],["minimum_job_fee","Minimum Job","$"],["deposit_pct","Deposit","%"],["tax_pct","Tax","%"]],
+    combo:[["install_rate","Install Rate","$/sqft"],["sanding_rate","Sanding Rate","$/sqft"],["removal_rate","Removal","$/sqft"],["stain_rate","Stain Rate","$/sqft"],["extra_coat_rate","Extra Coat","$/sqft"],["subfloor_light_rate","Subfloor Light","$/sqft"],["subfloor_heavy_rate","Subfloor Heavy","$/sqft"],["moisture_barrier_rate","Moisture Barrier","$/sqft"],["trim_rate","Trim","$/lin ft"],["transition_strip_rate","Transition Strip","$/each"],["stairs_install_rate","Stair Install","$/stair"],["stairs_sand_rate","Stair Sand","$/stair"],["diagonal_multiplier","Diagonal Mult","×"],["herringbone_multiplier","Herringbone Mult","×"],["board_repair_rate","Board Repair","$/board"],["furniture_moving_fee","Furniture Moving","$ flat"],["travel_fee","Travel Fee","$ flat"],["minimum_job_fee","Minimum Job","$"],["deposit_pct","Deposit","%"],["tax_pct","Tax","%"]],
     painting:[["wall_rate","Wall Rate","$/sqft"],["ceiling_rate","Ceiling","$/sqft"],["trim_rate","Trim","$/lin ft"],["door_rate","Door","$/door"],["window_rate","Window","$/window"],["primer_rate","Primer","$/sqft"],["minor_patch_rate","Minor Patch","$/patch"],["major_patch_rate","Major Patch","$/patch"],["extra_coat_rate","Extra Coat","$/sqft"],["travel_fee","Travel Fee","$ flat"],["minimum_job_fee","Minimum Job","$"],["deposit_pct","Deposit","%"],["tax_pct","Tax","%"]],
   };
   return (
@@ -634,10 +699,10 @@ function SettingsScreen({pricing,setPricing,company,setCompany}) {
       {/* Pricing Section */}
       <div style={{fontSize:11,fontWeight:700,color:"#7D8590",letterSpacing:"1px",marginBottom:10}}>💲 PRICING RATES</div>
       <p style={{fontSize:12,color:"#7D8590",marginTop:0,marginBottom:10}}>Edit your default pricing rates for new quotes.</p>
-      <div style={{display:"flex",gap:8,marginBottom:16}}>
-        {["sanding","installing","painting"].map(s=>(
-          <button key={s} onClick={()=>setTab(s)} style={{flex:1,padding:10,borderRadius:10,background:tab===s?SVC_COLORS[s]+"22":"#161B22",border:`1px solid ${tab===s?SVC_COLORS[s]:"#21262D"}`,color:tab===s?SVC_COLORS[s]:"#7D8590",fontSize:12,fontWeight:700,cursor:"pointer"}}>
-            {SVC_ICONS[s]} {s.charAt(0).toUpperCase()+s.slice(1)}
+      <div style={{display:"flex",gap:6,marginBottom:16,flexWrap:"wrap"}}>
+        {["sanding","installing","combo","painting"].map(s=>(
+          <button key={s} onClick={()=>setTab(s)} style={{flex:"1 1 auto",padding:10,borderRadius:10,background:tab===s?SVC_COLORS[s]+"22":"#161B22",border:`1px solid ${tab===s?SVC_COLORS[s]:"#21262D"}`,color:tab===s?SVC_COLORS[s]:"#7D8590",fontSize:11,fontWeight:700,cursor:"pointer",whiteSpace:"nowrap"}}>
+            {SVC_ICONS[s]} {SVC_NAMES[s].split(" ")[0]}
           </button>
         ))}
       </div>
