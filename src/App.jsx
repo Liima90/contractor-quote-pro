@@ -644,14 +644,7 @@ function PrintView({quote,company,onClose}) {
         <div style={{textAlign:"center",fontSize:11,color:"#9CA3AF",marginTop:12}}>{hasCompany ? `Thank you for choosing ${company.name}!` : "Thank you for your business!"} Quote valid until {fmtDate(quote.validUntil)}.</div>
       </div>
       <div className="no-print" style={{maxWidth:600,margin:"20px auto 0",display:"flex",flexDirection:"column",gap:10,paddingBottom:20}}>
-        <button onClick={()=>{
-          if(navigator.share){
-            navigator.share({title:`Quote ${quote.quoteNumber}`,text:`Quote ${quote.quoteNumber} — ${SVC_NAMES[quote.service]} — $${fmt(quote.total)}`,url:window.location.href}).catch(()=>{});
-          } else {
-            window.print();
-          }
-        }} style={{width:"100%",padding:"14px",background:"linear-gradient(135deg,#F97316,#F97316bb)",color:"#fff",border:"none",borderRadius:12,fontSize:15,fontWeight:700,cursor:"pointer",boxShadow:"0 4px 14px #F9731644"}}>📤 Share Quote</button>
-        <button onClick={()=>window.print()} style={{width:"100%",padding:"14px",background:`linear-gradient(135deg,${c},${c}cc)`,color:"#fff",border:"none",borderRadius:12,fontSize:15,fontWeight:700,cursor:"pointer"}}>🖨️ Print / Save as PDF</button>
+        <button onClick={()=>window.print()} style={{width:"100%",padding:"14px",background:"linear-gradient(135deg,#F97316,#F97316bb)",color:"#fff",border:"none",borderRadius:12,fontSize:15,fontWeight:700,cursor:"pointer",boxShadow:"0 4px 14px #F9731644"}}>📤 Share / Save as PDF</button>
       </div>
     </div>
   );
