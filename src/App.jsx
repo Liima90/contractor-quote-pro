@@ -56,6 +56,7 @@ export default function App() {
   const [prevScreen,setPrevScreen] = useState(null);
   const [selId,setSelId] = useState(null);
   const [printQ,setPrintQ] = useState(null);
+  const [autoPrint,setAutoPrint] = useState(false);
   const selQuote = quotes.find(q=>q.id===selId);
 
   // Auto-save to localStorage whenever data changes
@@ -82,7 +83,7 @@ export default function App() {
   };
   const deleteQuote = id => setQuotes(prev=>prev.filter(q=>q.id!==id));
 
-  if(printQ) return <PrintView quote={printQ} company={company} onClose={()=>setPrintQ(null)}/>;
+  if(printQ) return <PrintView quote={printQ} company={company} autoPrint={autoPrint} onClose={()=>{setPrintQ(null);setAutoPrint(false);}}/>;
 
   const curNav = ["sanding","installing","combo","painting"].includes(screen)?"home":screen==="detail"?"quotes":screen;
 
@@ -106,7 +107,7 @@ export default function App() {
         {screen==="combo"     && <QuoteForm service="combo"      pricing={pricing.combo}      quotes={quotes} onSave={saveQuote} onBack={goBack}/>}
         {screen==="painting"  && <QuoteForm service="painting"   pricing={pricing.painting}   quotes={quotes} onSave={saveQuote} onBack={goBack}/>}
         {screen==="quotes"    && <DashboardScreen quotes={quotes} onSelect={id=>{setSelId(id);navigate("detail");}} onDup={dupQuote} onStatus={updateStatus} onDelete={deleteQuote}/>}
-        {screen==="detail"    && selQuote && <DetailScreen quote={selQuote} onPrint={()=>setPrintQ(selQuote)} onStatus={updateStatus} onDup={dupQuote}/>}
+        {screen==="detail"    && selQuote && <DetailScreen quote={selQuote} onPrint={()=>{setAutoPrint(true);setPrintQ(selQuote);}} onShare={()=>{setAutoPrint(false);setPrintQ(selQuote);}} onStatus={updateStatus} onDup={dupQuote}/>}
         {screen==="settings"  && <SettingsScreen pricing={pricing} setPricing={setPricing} company={company} setCompany={setCompany}/>}
       </main>
 
@@ -500,12 +501,12 @@ function DashboardScreen({quotes,onSelect,onDup,onStatus,onDelete}) {
   );
 }
 
-function DetailScreen({quote,onPrint,onStatus,onDup}) {
+function DetailScreen({quote,onPrint,onShare,onStatus,onDup}) {
   const [showMenu,setShowMenu]=useState(false);
   const c=SVC_COLORS[quote.service];
 
   const shareQuote = () => {
-    onPrint();
+    onShare();
   };
   return (
     <div style={{padding:16}}>
@@ -577,10 +578,17 @@ function DetailScreen({quote,onPrint,onStatus,onDup}) {
   );
 }
 
-function PrintView({quote,company,onClose}) {
+function PrintView({quote,company,autoPrint,onClose}) {
   const c=SVC_COLORS[quote.service];
   const hasCompany = company && company.name.trim();
   const companyAddr = company ? `${company.address||""}${company.city?", "+company.city:""}${company.state?", "+company.state:""}${company.zip?" "+company.zip:""}`.trim() : "";
+
+  useEffect(()=>{
+    if(autoPrint){
+      const t=setTimeout(()=>window.print(),400);
+      return ()=>clearTimeout(t);
+    }
+  },[autoPrint]);
   return (
     <div style={{background:"#fff",height:"100vh",overflowY:"auto",WebkitOverflowScrolling:"touch",padding:20,color:"#111",fontFamily:"Arial,sans-serif"}}>
       <style>{`@media print { .no-print { display: none !important; } }`}</style>
