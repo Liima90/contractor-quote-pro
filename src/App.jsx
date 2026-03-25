@@ -585,7 +585,7 @@ function PrintView({quote,company,onClose}) {
     <div style={{background:"#fff",height:"100vh",overflowY:"auto",WebkitOverflowScrolling:"touch",padding:20,color:"#111",fontFamily:"Arial,sans-serif"}}>
       <style>{`@media print { .no-print { display: none !important; } }`}</style>
       <button className="no-print" onClick={onClose} style={{background:"#F97316",color:"#fff",border:"none",padding:"8px 16px",borderRadius:8,cursor:"pointer",marginBottom:16,fontWeight:700,fontSize:13}}>✕ Close Preview</button>
-      <div style={{maxWidth:600,margin:"0 auto"}}>
+      <div id="quote-print-content" style={{maxWidth:600,margin:"0 auto"}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",borderBottom:`3px solid ${c}`,paddingBottom:12,marginBottom:16}}>
           <div>
             <div style={{fontSize:18,fontWeight:800}}>{hasCompany ? company.name : "✏️ ContractorQuote Pro"}</div>
@@ -644,7 +644,25 @@ function PrintView({quote,company,onClose}) {
         <div style={{textAlign:"center",fontSize:11,color:"#9CA3AF",marginTop:12}}>{hasCompany ? `Thank you for choosing ${company.name}!` : "Thank you for your business!"} Quote valid until {fmtDate(quote.validUntil)}.</div>
       </div>
       <div className="no-print" style={{maxWidth:600,margin:"20px auto 0",display:"flex",flexDirection:"column",gap:10,paddingBottom:20}}>
-        <button onClick={()=>window.print()} style={{width:"100%",padding:"14px",background:"linear-gradient(135deg,#F97316,#F97316bb)",color:"#fff",border:"none",borderRadius:12,fontSize:15,fontWeight:700,cursor:"pointer",boxShadow:"0 4px 14px #F9731644"}}>📤 Share / Save as PDF</button>
+        <button onClick={async()=>{
+          try {
+            // Dynamically load html2canvas
+            if(!window.html2canvas){
+              await new Promise((res,rej)=>{const s=document.createElement("script");s.src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js";s.onload=res;s.onerror=rej;document.head.appendChild(s);});
+            }
+            // Capture the quote content (the max-width 600 div)
+            const el=document.getElementById("quote-print-content");
+            if(!el){window.print();return;}
+            const canvas=await window.html2canvas(el,{scale:2,useCORS:true,backgroundColor:"#ffffff"});
+            canvas.toBlob(async(blob)=>{
+              if(!blob){window.print();return;}
+              const file=new File([blob],`Quote-${quote.quoteNumber}.png`,{type:"image/png"});
+              if(navigator.canShare&&navigator.canShare({files:[file]})){
+                await navigator.share({title:`Quote ${quote.quoteNumber}`,text:`${hasCompany?company.name+' - ':''}Quote ${quote.quoteNumber} — $${fmt(quote.total)}`,files:[file]});
+              } else { window.print(); }
+            },"image/png",0.95);
+          } catch(e){ window.print(); }
+        }} style={{width:"100%",padding:"14px",background:"linear-gradient(135deg,#F97316,#F97316bb)",color:"#fff",border:"none",borderRadius:12,fontSize:15,fontWeight:700,cursor:"pointer",boxShadow:"0 4px 14px #F9731644"}}>📤 Share / Save as PDF</button>
       </div>
     </div>
   );
