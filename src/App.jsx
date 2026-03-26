@@ -291,8 +291,8 @@ function QuoteForm({service,pricing,quotes,onSave,onBack}) {
           <Field label="Zip"><input style={inp} value={zip} onChange={e=>setZip(e.target.value)} placeholder="33101"/></Field>
         </div>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-          <Field label="Job Date"><input style={inp} type="date" value={jobDate} onChange={e=>setJobDate(e.target.value)}/></Field>
-          <Field label="Valid Until"><input style={inp} type="date" value={valid} onChange={e=>setValid(e.target.value)}/></Field>
+          <Field label="Job Date"><input style={inp} type="date" value={jobDate} onChange={e=>{setJobDate(e.target.value);e.target.blur();}}/></Field>
+          <Field label="Valid Until"><input style={inp} type="date" value={valid} onChange={e=>{setValid(e.target.value);e.target.blur();}}/></Field>
         </div>
         <Field label="Notes"><textarea style={{...inp,height:56,resize:"none"}} value={notes} onChange={e=>setNotes(e.target.value)} placeholder="Special instructions..."/></Field>
       </div>
