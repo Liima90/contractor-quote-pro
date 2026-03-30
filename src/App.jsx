@@ -718,12 +718,21 @@ function SettingsScreen({pricing,setPricing,company,setCompany}) {
       {/* Pricing Section */}
       <div style={{fontSize:11,fontWeight:700,color:"#7D8590",letterSpacing:"1px",marginBottom:10}}>💲 PRICING RATES</div>
       <p style={{fontSize:12,color:"#7D8590",marginTop:0,marginBottom:10}}>Edit your default pricing rates for new quotes.</p>
-      <div style={{display:"flex",gap:6,marginBottom:16,flexWrap:"wrap"}}>
-        {["sanding","installing","combo","painting"].map(s=>(
-          <button key={s} onClick={()=>setTab(s)} style={{flex:"1 1 auto",padding:10,borderRadius:10,background:tab===s?SVC_COLORS[s]+"22":"#161B22",border:`1px solid ${tab===s?SVC_COLORS[s]:"#21262D"}`,color:tab===s?SVC_COLORS[s]:"#7D8590",fontSize:11,fontWeight:700,cursor:"pointer",whiteSpace:"nowrap"}}>
-            {SVC_ICONS[s]} {SVC_NAMES[s].split(" ")[0]}
-          </button>
-        ))}
+      <div style={{display:"flex",flexDirection:"column",gap:6,marginBottom:16}}>
+        <div style={{display:"flex",gap:6}}>
+          {["installing","sanding"].map(s=>(
+            <button key={s} onClick={()=>setTab(s)} style={{flex:1,padding:10,borderRadius:10,background:tab===s?SVC_COLORS[s]+"22":"#161B22",border:`1px solid ${tab===s?SVC_COLORS[s]:"#21262D"}`,color:tab===s?SVC_COLORS[s]:"#7D8590",fontSize:12,fontWeight:700,cursor:"pointer"}}>
+              {SVC_ICONS[s]} {SVC_NAMES[s].split(" ")[0]}
+            </button>
+          ))}
+        </div>
+        <div style={{display:"flex",gap:6}}>
+          {["combo","painting"].map(s=>(
+            <button key={s} onClick={()=>setTab(s)} style={{flex:1,padding:10,borderRadius:10,background:tab===s?SVC_COLORS[s]+"22":"#161B22",border:`1px solid ${tab===s?SVC_COLORS[s]:"#21262D"}`,color:tab===s?SVC_COLORS[s]:"#7D8590",fontSize:12,fontWeight:700,cursor:"pointer"}}>
+              {SVC_ICONS[s]} {SVC_NAMES[s]}
+            </button>
+          ))}
+        </div>
       </div>
       <div style={{background:"#161B22",border:"1px solid #21262D",borderRadius:14,padding:14,marginBottom:14}}>
         {FIELDS[tab].map(([key,label,unit])=>(
