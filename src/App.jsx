@@ -536,6 +536,7 @@ function DashboardScreen({quotes,onSelect,onDup,onStatus,onDelete}) {
 
 function DetailScreen({quote,onPrint,onShare,onStatus,onDup}) {
   const [showMenu,setShowMenu]=useState(false);
+  const [viewPhoto,setViewPhoto]=useState(null);
   const c=SVC_COLORS[quote.service];
 
   const shareQuote = () => {
@@ -565,8 +566,23 @@ function DetailScreen({quote,onPrint,onShare,onStatus,onDup}) {
           <div style={{fontSize:11,fontWeight:700,color:"#7D8590",textTransform:"uppercase",letterSpacing:"0.5px",marginBottom:10}}>📷 Job Photos ({quote.photos.length})</div>
           <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8}}>
             {quote.photos.map((ph,i)=>(
-              <img key={i} src={ph.data} alt="" style={{width:"100%",borderRadius:8,aspectRatio:"1",objectFit:"cover",border:"1px solid #21262D"}}/>
+              <img key={i} src={ph.data} alt="" onClick={()=>setViewPhoto(i)} style={{width:"100%",borderRadius:8,aspectRatio:"1",objectFit:"cover",border:"1px solid #21262D",cursor:"pointer"}}/>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* Photo Lightbox */}
+      {viewPhoto!==null&&quote.photos&&quote.photos[viewPhoto]&&(
+        <div onClick={()=>setViewPhoto(null)} style={{position:"fixed",top:0,left:0,right:0,bottom:0,background:"rgba(0,0,0,0.92)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",zIndex:200,padding:16}}>
+          <div style={{position:"absolute",top:16,right:16,display:"flex",gap:12,zIndex:201}}>
+            <span style={{color:"#7D8590",fontSize:14}}>{viewPhoto+1} / {quote.photos.length}</span>
+            <button onClick={()=>setViewPhoto(null)} style={{background:"rgba(255,255,255,0.15)",border:"none",color:"#fff",width:36,height:36,borderRadius:"50%",fontSize:18,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>✕</button>
+          </div>
+          <img src={quote.photos[viewPhoto].data} alt="" onClick={e=>e.stopPropagation()} style={{maxWidth:"100%",maxHeight:"75vh",borderRadius:8,objectFit:"contain"}}/>
+          <div onClick={e=>e.stopPropagation()} style={{display:"flex",gap:24,marginTop:20}}>
+            {viewPhoto>0&&<button onClick={()=>setViewPhoto(viewPhoto-1)} style={{background:"rgba(255,255,255,0.15)",border:"none",color:"#fff",padding:"10px 24px",borderRadius:10,fontSize:15,fontWeight:600,cursor:"pointer"}}>← Prev</button>}
+            {viewPhoto<quote.photos.length-1&&<button onClick={()=>setViewPhoto(viewPhoto+1)} style={{background:"rgba(255,255,255,0.15)",border:"none",color:"#fff",padding:"10px 24px",borderRadius:10,fontSize:15,fontWeight:600,cursor:"pointer"}}>Next →</button>}
           </div>
         </div>
       )}
