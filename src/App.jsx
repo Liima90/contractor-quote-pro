@@ -35,16 +35,16 @@ function Toggle({label,value,onChange}) {
 }
 
 // LocalStorage helpers — safe for environments that block storage
-const canUseStorage = (() => { try { const k='__test'; localStorage.setItem(k,'1'); localStorage.removeItem(k); return true; } catch { return false; } })();
-const loadData = (key, fallback) => { if(!canUseStorage) return fallback; try { const d = localStorage.getItem(key); return d ? JSON.parse(d) : fallback; } catch { return fallback; } };
-const saveData = (key, val) => { if(!canUseStorage) return; try { localStorage.setItem(key, JSON.stringify(val)); } catch {} };
+const canUseStorage = (() => { try { if(typeof localStorage === 'undefined') return false; const k='__test'; localStorage.setItem(k,'1'); localStorage.removeItem(k); return true; } catch(e) { return false; } })();
+const loadData = (key, fallback) => { if(!canUseStorage) return fallback; try { const d = localStorage.getItem(key); return d ? JSON.parse(d) : fallback; } catch(e) { return fallback; } };
+const saveData = (key, val) => { if(!canUseStorage) return; try { localStorage.setItem(key, JSON.stringify(val)); } catch(e) {} };
 const loadPricing = () => {
   const saved = loadData("cqp_pricing", null);
   if(!saved) return DEFAULT_PRICING;
-  const merged = {};
-  for(const svc of Object.keys(DEFAULT_PRICING)){
-    merged[svc] = {...DEFAULT_PRICING[svc], ...(saved[svc]||{})};
-  }
+  var merged = {};
+  Object.keys(DEFAULT_PRICING).forEach(function(svc){
+    merged[svc] = Object.assign({}, DEFAULT_PRICING[svc], saved[svc]||{});
+  });
   return merged;
 };
 
@@ -182,6 +182,19 @@ function QuoteForm({service,pricing,quotes,onSave,onBack}) {
   const [doors,setDoors]=useState("0"); const [wins,setWins]=useState("0");
   const [primer,setPrimer]=useState(false); const [pxCoats,setPxCoats]=useState("0");
   const [minPatch,setMinPatch]=useState("0"); const [majPatch,setMajPatch]=useState("0");
+  // photos
+  const [photos,setPhotos]=useState([]);
+  const addPhotos = (e) => {
+    const files = Array.from(e.target.files||[]);
+    if(photos.length+files.length>10){alert("Maximum 10 photos allowed");return;}
+    files.forEach(file=>{
+      const reader=new FileReader();
+      reader.onload=(ev)=>setPhotos(prev=>prev.length<10?[...prev,{id:Date.now()+Math.random(),data:ev.target.result,name:file.name}]:prev);
+      reader.readAsDataURL(file);
+    });
+    e.target.value="";
+  };
+  const removePhoto = (id) => setPhotos(prev=>prev.filter(p=>p.id!==id));
 
   const calc = useMemo(()=>{
     const items=[]; const tv=parseFloat(travelOvr)||p.travel_fee;
@@ -267,7 +280,7 @@ function QuoteForm({service,pricing,quotes,onSave,onBack}) {
     if(service==="painting"&&!wallSqft)e.sqft="Required";
     setErrs(e); if(Object.keys(e).length) return;
     const yr=new Date().getFullYear(); const cnt=quotes.filter(q=>q.service===service).length+1;
-    onSave({id:Date.now().toString(),quoteNumber:`${SVC_PREFIXES[service]}-${yr}-${String(cnt).padStart(4,"0")}`,service,status:"draft",customerName:name,customerPhone:phone,customerEmail:email,jobAddress:addr,city,state:st,zip,jobDate,validUntil:valid,notes,items:calc.items,subtotal:calc.sub,discountAmt:calc.da,taxAmt:calc.taxAmt,total:calc.total,deposit:calc.deposit,createdAt:new Date().toISOString()});
+    onSave({id:Date.now().toString(),quoteNumber:`${SVC_PREFIXES[service]}-${yr}-${String(cnt).padStart(4,"0")}`,service,status:"draft",customerName:name,customerPhone:phone,customerEmail:email,jobAddress:addr,city,state:st,zip,jobDate,validUntil:valid,notes,photos,items:calc.items,subtotal:calc.sub,discountAmt:calc.da,taxAmt:calc.taxAmt,total:calc.total,deposit:calc.deposit,createdAt:new Date().toISOString()});
   };
 
   return (
@@ -368,6 +381,26 @@ function QuoteForm({service,pricing,quotes,onSave,onBack}) {
           </div>
           <Field label="Major Patches"><input style={inp} type="number" value={majPatch} onChange={e=>setMajPatch(e.target.value)} placeholder="0"/></Field>
         </>}
+      </div>
+
+      {/* Job Photos - Optional */}
+      <div style={{fontSize:11,fontWeight:700,color:"#7D8590",letterSpacing:"1px",marginBottom:10}}>📷 JOB PHOTOS <span style={{fontWeight:400,letterSpacing:0}}>(optional — up to 10)</span></div>
+      <div style={{...card,marginBottom:14}}>
+        {photos.length>0&&(
+          <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8,marginBottom:12}}>
+            {photos.map(ph=>(
+              <div key={ph.id} style={{position:"relative",borderRadius:10,overflow:"hidden",aspectRatio:"1",background:"#0D1117"}}>
+                <img src={ph.data} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/>
+                <button onClick={()=>removePhoto(ph.id)} style={{position:"absolute",top:4,right:4,width:24,height:24,borderRadius:"50%",background:"rgba(0,0,0,0.7)",border:"1px solid #DC262688",color:"#F87171",fontSize:14,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",padding:0,lineHeight:1}}>✕</button>
+              </div>
+            ))}
+          </div>
+        )}
+        <label style={{display:"flex",alignItems:"center",justifyContent:"center",gap:8,padding:"14px",borderRadius:10,border:"1px dashed #30363D",background:"#0D111788",cursor:"pointer",color:photos.length>=10?"#7D8590":ac,fontSize:13,fontWeight:600}}>
+          <span style={{fontSize:20}}>📸</span>
+          {photos.length===0?"Add Photos":photos.length>=10?"Maximum 10 photos":`Add More (${photos.length}/10)`}
+          <input type="file" accept="image/*" multiple onChange={addPhotos} disabled={photos.length>=10} style={{display:"none"}}/>
+        </label>
       </div>
 
       <div style={{fontSize:11,fontWeight:700,color:"#7D8590",letterSpacing:"1px",marginBottom:10}}>ADJUSTMENTS</div>
@@ -527,6 +560,17 @@ function DetailScreen({quote,onPrint,onShare,onStatus,onDup}) {
         ))}
       </div>
 
+      {quote.photos&&quote.photos.length>0&&(
+        <div style={{background:"#161B22",border:"1px solid #21262D",borderRadius:14,padding:14,marginBottom:12}}>
+          <div style={{fontSize:11,fontWeight:700,color:"#7D8590",textTransform:"uppercase",letterSpacing:"0.5px",marginBottom:10}}>📷 Job Photos ({quote.photos.length})</div>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8}}>
+            {quote.photos.map((ph,i)=>(
+              <img key={i} src={ph.data} alt="" style={{width:"100%",borderRadius:8,aspectRatio:"1",objectFit:"cover",border:"1px solid #21262D"}}/>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div style={{background:"#161B22",border:"1px solid #21262D",borderRadius:14,padding:14,marginBottom:12}}>
         <div style={{fontSize:11,fontWeight:700,color:"#7D8590",textTransform:"uppercase",letterSpacing:"0.5px",marginBottom:10}}>Line Items</div>
         {quote.items.map((item,i)=>(
@@ -645,6 +689,16 @@ function PrintView({quote,company,autoPrint,onClose}) {
           <div style={{display:"flex",justifyContent:"space-between",background:"#FFF7ED",border:"1px solid #FED7AA",borderRadius:8,padding:"8px 12px",fontSize:13,color:"#C2410C",fontWeight:600}}><span>Deposit Required</span><span>${fmt(quote.deposit)}</span></div>
         </div>
         {quote.notes&&<div style={{background:"#F9FAFB",border:"1px solid #E5E7EB",borderRadius:8,padding:12,marginBottom:16,fontSize:12}}><strong>Notes:</strong> {quote.notes}</div>}
+        {quote.photos&&quote.photos.length>0&&(
+          <div style={{marginBottom:16}}>
+            <div style={{fontSize:10,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.5px",color:"#6B7280",marginBottom:8}}>Job Photos</div>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8}}>
+              {quote.photos.map((ph,i)=>(
+                <img key={i} src={ph.data} alt={`Job photo ${i+1}`} style={{width:"100%",borderRadius:6,border:"1px solid #E5E7EB",aspectRatio:"1",objectFit:"cover"}}/>
+              ))}
+            </div>
+          </div>
+        )}
         <div style={{display:"flex",gap:24,borderTop:"1px solid #E5E7EB",paddingTop:20,marginBottom:8}}>
           <div style={{flex:1}}><div style={{borderBottom:"1px solid #111",paddingBottom:36,marginBottom:6,fontSize:11,color:"#6B7280"}}>Customer Signature</div><div style={{fontSize:11,color:"#6B7280"}}>Date: _______________</div></div>
           <div style={{flex:1}}><div style={{borderBottom:"1px solid #111",paddingBottom:36,marginBottom:6,fontSize:11,color:"#6B7280"}}>Contractor Signature</div><div style={{fontSize:11,color:"#6B7280"}}>Date: _______________</div></div>
