@@ -184,13 +184,29 @@ function QuoteForm({service,pricing,quotes,onSave,onBack}) {
   const [minPatch,setMinPatch]=useState("0"); const [majPatch,setMajPatch]=useState("0");
   // photos
   const [photos,setPhotos]=useState([]);
+  const compressImage = (file, cb) => {
+    const img = new Image();
+    img.onload = () => {
+      const maxDim = 800;
+      let w = img.width, h = img.height;
+      if(w > maxDim || h > maxDim){
+        if(w > h){ h = Math.round(h * maxDim / w); w = maxDim; }
+        else { w = Math.round(w * maxDim / h); h = maxDim; }
+      }
+      const canvas = document.createElement("canvas");
+      canvas.width = w; canvas.height = h;
+      canvas.getContext("2d").drawImage(img, 0, 0, w, h);
+      cb(canvas.toDataURL("image/jpeg", 0.6));
+    };
+    img.src = URL.createObjectURL(file);
+  };
   const addPhotos = (e) => {
     const files = Array.from(e.target.files||[]);
     if(photos.length+files.length>10){alert("Maximum 10 photos allowed");return;}
     files.forEach(file=>{
-      const reader=new FileReader();
-      reader.onload=(ev)=>setPhotos(prev=>prev.length<10?[...prev,{id:Date.now()+Math.random(),data:ev.target.result,name:file.name}]:prev);
-      reader.readAsDataURL(file);
+      compressImage(file, (data)=>{
+        setPhotos(prev=>prev.length<10?[...prev,{id:Date.now()+Math.random(),data,name:file.name}]:prev);
+      });
     });
     e.target.value="";
   };
