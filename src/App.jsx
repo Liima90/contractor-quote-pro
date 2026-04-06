@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 
 const DEFAULT_PRICING = {
   sanding: { sanding_rate: 2.50, stain_rate: 0.75, extra_coat_rate: 0.50, stairs_rate: 45, board_repair_rate: 25, furniture_moving_fee: 150, travel_fee: 75, minimum_job_fee: 350, deposit_pct: 50, tax_pct: 0 },
@@ -550,6 +550,86 @@ function DashboardScreen({quotes,onSelect,onDup,onStatus,onDelete}) {
   );
 }
 
+function PhotoLightbox({photos,index,onClose,onNav}) {
+  const [scale,setScale]=useState(1);
+  const [pos,setPos]=useState({x:0,y:0});
+  const lastDist=useRef(0);
+  const lastPos=useRef({x:0,y:0});
+  const dragging=useRef(false);
+  const imgRef=useRef(null);
+
+  // Reset zoom when switching photos
+  useEffect(()=>{setScale(1);setPos({x:0,y:0});},[index]);
+
+  const getTouchDist=(t)=>Math.hypot(t[0].clientX-t[1].clientX,t[0].clientY-t[1].clientY);
+
+  const onTouchStart=useCallback((e)=>{
+    if(e.touches.length===2){
+      e.preventDefault();
+      lastDist.current=getTouchDist(e.touches);
+    } else if(e.touches.length===1&&scale>1){
+      dragging.current=true;
+      lastPos.current={x:e.touches[0].clientX-pos.x,y:e.touches[0].clientY-pos.y};
+    }
+  },[scale,pos]);
+
+  const onTouchMove=useCallback((e)=>{
+    if(e.touches.length===2){
+      e.preventDefault();
+      const dist=getTouchDist(e.touches);
+      const newScale=Math.min(5,Math.max(1,scale*(dist/lastDist.current)));
+      setScale(newScale);
+      lastDist.current=dist;
+      if(newScale<=1)setPos({x:0,y:0});
+    } else if(e.touches.length===1&&dragging.current&&scale>1){
+      setPos({x:e.touches[0].clientX-lastPos.current.x,y:e.touches[0].clientY-lastPos.current.y});
+    }
+  },[scale]);
+
+  const onTouchEnd=useCallback(()=>{
+    dragging.current=false;
+    if(scale<=1.05){setScale(1);setPos({x:0,y:0});}
+  },[scale]);
+
+  // Double tap to zoom
+  const lastTap=useRef(0);
+  const onDoubleTap=useCallback((e)=>{
+    const now=Date.now();
+    if(now-lastTap.current<300){
+      e.stopPropagation();
+      if(scale>1){setScale(1);setPos({x:0,y:0});}
+      else setScale(2.5);
+    }
+    lastTap.current=now;
+  },[scale]);
+
+  return (
+    <div onClick={()=>{if(scale<=1)onClose();}} style={{position:"fixed",top:0,left:0,right:0,bottom:0,background:"rgba(0,0,0,0.95)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",zIndex:200,touchAction:"none"}}>
+      <div style={{position:"absolute",top:16,right:16,display:"flex",gap:12,zIndex:201}}>
+        <span style={{color:"#7D8590",fontSize:14}}>{index+1} / {photos.length}</span>
+        {scale>1&&<span style={{color:"#F97316",fontSize:12,fontWeight:600}}>{Math.round(scale*100)}%</span>}
+        <button onClick={(e)=>{e.stopPropagation();onClose();}} style={{background:"rgba(255,255,255,0.15)",border:"none",color:"#fff",width:36,height:36,borderRadius:"50%",fontSize:18,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>✕</button>
+      </div>
+      <div
+        ref={imgRef}
+        onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
+        onTouchEnd={onTouchEnd}
+        onClick={(e)=>{e.stopPropagation();onDoubleTap(e);}}
+        style={{overflow:"hidden",display:"flex",alignItems:"center",justifyContent:"center",width:"100%",flex:1,padding:16}}
+      >
+        <img src={photos[index].data} alt="" style={{maxWidth:"100%",maxHeight:"75vh",borderRadius:8,objectFit:"contain",transform:`scale(${scale}) translate(${pos.x/scale}px,${pos.y/scale}px)`,transition:scale===1?"transform 0.2s":"none"}}/>
+      </div>
+      {scale<=1&&(
+        <div onClick={e=>e.stopPropagation()} style={{display:"flex",gap:24,paddingBottom:30}}>
+          {index>0&&<button onClick={()=>onNav(index-1)} style={{background:"rgba(255,255,255,0.15)",border:"none",color:"#fff",padding:"10px 24px",borderRadius:10,fontSize:15,fontWeight:600,cursor:"pointer"}}>← Prev</button>}
+          {index<photos.length-1&&<button onClick={()=>onNav(index+1)} style={{background:"rgba(255,255,255,0.15)",border:"none",color:"#fff",padding:"10px 24px",borderRadius:10,fontSize:15,fontWeight:600,cursor:"pointer"}}>Next →</button>}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function DetailScreen({quote,onPrint,onShare,onStatus,onDup}) {
   const [showMenu,setShowMenu]=useState(false);
   const [viewPhoto,setViewPhoto]=useState(null);
@@ -588,19 +668,9 @@ function DetailScreen({quote,onPrint,onShare,onStatus,onDup}) {
         </div>
       )}
 
-      {/* Photo Lightbox */}
+      {/* Photo Lightbox with Zoom */}
       {viewPhoto!==null&&quote.photos&&quote.photos[viewPhoto]&&(
-        <div onClick={()=>setViewPhoto(null)} style={{position:"fixed",top:0,left:0,right:0,bottom:0,background:"rgba(0,0,0,0.92)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",zIndex:200,padding:16}}>
-          <div style={{position:"absolute",top:16,right:16,display:"flex",gap:12,zIndex:201}}>
-            <span style={{color:"#7D8590",fontSize:14}}>{viewPhoto+1} / {quote.photos.length}</span>
-            <button onClick={()=>setViewPhoto(null)} style={{background:"rgba(255,255,255,0.15)",border:"none",color:"#fff",width:36,height:36,borderRadius:"50%",fontSize:18,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>✕</button>
-          </div>
-          <img src={quote.photos[viewPhoto].data} alt="" onClick={e=>e.stopPropagation()} style={{maxWidth:"100%",maxHeight:"75vh",borderRadius:8,objectFit:"contain"}}/>
-          <div onClick={e=>e.stopPropagation()} style={{display:"flex",gap:24,marginTop:20}}>
-            {viewPhoto>0&&<button onClick={()=>setViewPhoto(viewPhoto-1)} style={{background:"rgba(255,255,255,0.15)",border:"none",color:"#fff",padding:"10px 24px",borderRadius:10,fontSize:15,fontWeight:600,cursor:"pointer"}}>← Prev</button>}
-            {viewPhoto<quote.photos.length-1&&<button onClick={()=>setViewPhoto(viewPhoto+1)} style={{background:"rgba(255,255,255,0.15)",border:"none",color:"#fff",padding:"10px 24px",borderRadius:10,fontSize:15,fontWeight:600,cursor:"pointer"}}>Next →</button>}
-          </div>
-        </div>
+        <PhotoLightbox photos={quote.photos} index={viewPhoto} onClose={()=>setViewPhoto(null)} onNav={setViewPhoto}/>
       )}
 
       <div style={{background:"#161B22",border:"1px solid #21262D",borderRadius:14,padding:14,marginBottom:12}}>
