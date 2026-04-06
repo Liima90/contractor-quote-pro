@@ -792,7 +792,7 @@ function PrintView({quote,company,autoPrint,onClose}) {
         </div>
         {quote.notes&&<div style={{background:"#F9FAFB",border:"1px solid #E5E7EB",borderRadius:8,padding:12,marginBottom:16,fontSize:12}}><strong>Notes:</strong> {quote.notes}</div>}
         {quote.photos&&quote.photos.length>0&&(
-          <div style={{marginBottom:16}}>
+          <div style={{marginBottom:16,pageBreakBefore:"always"}}>
             <div style={{fontSize:10,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.5px",color:"#6B7280",marginBottom:8}}>Job Photos</div>
             <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8}}>
               {quote.photos.map((ph,i)=>(
