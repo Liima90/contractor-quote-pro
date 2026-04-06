@@ -82,10 +82,12 @@ export default function App() {
     setQuotes(prev=>[nq,...prev]); setSelId(nq.id); navigate("detail");
   };
   const deleteQuote = id => setQuotes(prev=>prev.filter(q=>q.id!==id));
+  const editQuote = q => { setEditQ(q); navigate("edit"); };
+  const [editQ,setEditQ] = useState(null);
 
   if(printQ) return <PrintView quote={printQ} company={company} autoPrint={autoPrint} onClose={()=>{setPrintQ(null);setAutoPrint(false);}}/>;
 
-  const curNav = ["sanding","installing","combo","painting"].includes(screen)?"home":screen==="detail"?"quotes":screen;
+  const curNav = ["sanding","installing","combo","painting","edit"].includes(screen)?"home":screen==="detail"?"quotes":screen;
 
   return (
     <div style={{display:"flex",flexDirection:"column",height:"100vh",background:"#0D1117",color:"#E6EDF3",fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif",overflow:"hidden",maxWidth:430,margin:"0 auto"}}>
@@ -106,8 +108,9 @@ export default function App() {
         {screen==="installing"&& <QuoteForm service="installing" pricing={pricing.installing} quotes={quotes} onSave={saveQuote} onBack={goBack}/>}
         {screen==="combo"     && <QuoteForm service="combo"      pricing={pricing.combo}      quotes={quotes} onSave={saveQuote} onBack={goBack}/>}
         {screen==="painting"  && <QuoteForm service="painting"   pricing={pricing.painting}   quotes={quotes} onSave={saveQuote} onBack={goBack}/>}
+        {screen==="edit"      && editQ && <QuoteForm service={editQ.service} pricing={pricing[editQ.service]} quotes={quotes} onSave={saveQuote} onBack={goBack} editQuote={editQ}/>}
         {screen==="quotes"    && <DashboardScreen quotes={quotes} onSelect={id=>{setSelId(id);navigate("detail");}} onDup={dupQuote} onStatus={updateStatus} onDelete={deleteQuote}/>}
-        {screen==="detail"    && selQuote && <DetailScreen quote={selQuote} onPrint={()=>{setAutoPrint(true);setPrintQ(selQuote);}} onShare={()=>{setAutoPrint(false);setPrintQ(selQuote);}} onStatus={updateStatus} onDup={dupQuote}/>}
+        {screen==="detail"    && selQuote && <DetailScreen quote={selQuote} onPrint={()=>{setAutoPrint(true);setPrintQ(selQuote);}} onShare={()=>{setAutoPrint(false);setPrintQ(selQuote);}} onStatus={updateStatus} onDup={dupQuote} onEdit={editQuote}/>}
         {screen==="settings"  && <SettingsScreen pricing={pricing} setPricing={setPricing} company={company} setCompany={setCompany}/>}
       </main>
 
@@ -156,34 +159,35 @@ function HomeScreen({setScreen}) {
   );
 }
 
-function QuoteForm({service,pricing,quotes,onSave,onBack}) {
+function QuoteForm({service,pricing,quotes,onSave,onBack,editQuote}) {
   const p=pricing; const ac=SVC_COLORS[service];
+  const eq=editQuote||{}; const efd=eq._formData||{};
   const inp = {width:"100%",padding:"11px 12px",background:"#0D1117",border:"1px solid #30363D",borderRadius:10,color:"#E6EDF3",fontSize:14,outline:"none",boxSizing:"border-box"};
   const card = {background:"#161B22",border:"1px solid #21262D",borderRadius:14,padding:14,marginBottom:14};
 
-  const [name,setName]=useState(""); const [phone,setPhone]=useState(""); const [email,setEmail]=useState("");
-  const [addr,setAddr]=useState(""); const [city,setCity]=useState(""); const [st,setSt]=useState(""); const [zip,setZip]=useState("");
-  const [jobDate,setJobDate]=useState(todayStr()); const [valid,setValid]=useState(addDays(todayStr(),30)); const [notes,setNotes]=useState("");
-  const [discount,setDiscount]=useState(""); const [applyTax,setApplyTax]=useState(false); const [travelOvr,setTravelOvr]=useState("");
+  const [name,setName]=useState(eq.customerName||""); const [phone,setPhone]=useState(eq.customerPhone||""); const [email,setEmail]=useState(eq.customerEmail||"");
+  const [addr,setAddr]=useState(eq.jobAddress||""); const [city,setCity]=useState(eq.city||""); const [st,setSt]=useState(eq.state||""); const [zip,setZip]=useState(eq.zip||"");
+  const [jobDate,setJobDate]=useState(eq.jobDate||todayStr()); const [valid,setValid]=useState(eq.validUntil||addDays(todayStr(),30)); const [notes,setNotes]=useState(eq.notes||"");
+  const [discount,setDiscount]=useState(efd.discount||""); const [applyTax,setApplyTax]=useState(efd.applyTax||false); const [travelOvr,setTravelOvr]=useState(efd.travelOvr||"");
   const [errs,setErrs]=useState({});
   // sanding
-  const [sqft,setSqft]=useState(""); const [stain,setStain]=useState(false); const [xCoats,setXCoats]=useState("0");
-  const [stairs,setStairs]=useState("0"); const [repairs,setRepairs]=useState("0"); const [furniture,setFurniture]=useState(false);
+  const [sqft,setSqft]=useState(efd.sqft||""); const [stain,setStain]=useState(efd.stain||false); const [xCoats,setXCoats]=useState(efd.xCoats||"0");
+  const [stairs,setStairs]=useState(efd.stairs||"0"); const [repairs,setRepairs]=useState(efd.repairs||"0"); const [furniture,setFurniture]=useState(efd.furniture||false);
   // installing
-  const [instSqft,setInstSqft]=useState(""); const [removeFloor,setRemoveFloor]=useState(false); const [remSqft,setRemSqft]=useState("");
-  const [subfloor,setSubfloor]=useState("none"); const [moisture,setMoisture]=useState(false);
-  const [trimFt,setTrimFt]=useState("0"); const [transStrips,setTransStrips]=useState("0");
-  const [pattern,setPattern]=useState("straight"); const [instStairs,setInstStairs]=useState("0");
-  const [matIncl,setMatIncl]=useState(false); const [matCost,setMatCost]=useState("");
+  const [instSqft,setInstSqft]=useState(efd.instSqft||""); const [removeFloor,setRemoveFloor]=useState(efd.removeFloor||false); const [remSqft,setRemSqft]=useState(efd.remSqft||"");
+  const [subfloor,setSubfloor]=useState(efd.subfloor||"none"); const [moisture,setMoisture]=useState(efd.moisture||false);
+  const [trimFt,setTrimFt]=useState(efd.trimFt||"0"); const [transStrips,setTransStrips]=useState(efd.transStrips||"0");
+  const [pattern,setPattern]=useState(efd.pattern||"straight"); const [instStairs,setInstStairs]=useState(efd.instStairs||"0");
+  const [matIncl,setMatIncl]=useState(efd.matIncl||false); const [matCost,setMatCost]=useState(efd.matCost||"");
   // painting
-  const [wallSqft,setWallSqft]=useState(""); const [coats,setCoats]=useState("2");
-  const [ceilings,setCeilings]=useState(false); const [ceilSqft,setCeilSqft]=useState("");
-  const [trimP,setTrimP]=useState(false); const [trimLf,setTrimLf]=useState("0");
-  const [doors,setDoors]=useState("0"); const [wins,setWins]=useState("0");
-  const [primer,setPrimer]=useState(false); const [pxCoats,setPxCoats]=useState("0");
-  const [minPatch,setMinPatch]=useState("0"); const [majPatch,setMajPatch]=useState("0");
+  const [wallSqft,setWallSqft]=useState(efd.wallSqft||""); const [coats,setCoats]=useState(efd.coats||"2");
+  const [ceilings,setCeilings]=useState(efd.ceilings||false); const [ceilSqft,setCeilSqft]=useState(efd.ceilSqft||"");
+  const [trimP,setTrimP]=useState(efd.trimP||false); const [trimLf,setTrimLf]=useState(efd.trimLf||"0");
+  const [doors,setDoors]=useState(efd.doors||"0"); const [wins,setWins]=useState(efd.wins||"0");
+  const [primer,setPrimer]=useState(efd.primer||false); const [pxCoats,setPxCoats]=useState(efd.pxCoats||"0");
+  const [minPatch,setMinPatch]=useState(efd.minPatch||"0"); const [majPatch,setMajPatch]=useState(efd.majPatch||"0");
   // photos
-  const [photos,setPhotos]=useState([]);
+  const [photos,setPhotos]=useState(eq.photos||[]);
   const compressImage = (file, cb) => {
     const img = new Image();
     img.onload = () => {
@@ -295,15 +299,21 @@ function QuoteForm({service,pricing,quotes,onSave,onBack}) {
     if(service==="combo"&&!instSqft)e.sqft="Required";
     if(service==="painting"&&!wallSqft)e.sqft="Required";
     setErrs(e); if(Object.keys(e).length) return;
-    const yr=new Date().getFullYear(); const cnt=quotes.filter(q=>q.service===service).length+1;
-    onSave({id:Date.now().toString(),quoteNumber:`${SVC_PREFIXES[service]}-${yr}-${String(cnt).padStart(4,"0")}`,service,status:"draft",customerName:name,customerPhone:phone,customerEmail:email,jobAddress:addr,city,state:st,zip,jobDate,validUntil:valid,notes,photos,items:calc.items,subtotal:calc.sub,discountAmt:calc.da,taxAmt:calc.taxAmt,total:calc.total,deposit:calc.deposit,createdAt:new Date().toISOString()});
+    const _formData={sqft,stain,xCoats,stairs,repairs,furniture,instSqft,removeFloor,remSqft,subfloor,moisture,trimFt,transStrips,pattern,instStairs,matIncl,matCost,wallSqft,coats,ceilings,ceilSqft,trimP,trimLf,doors,wins,primer,pxCoats,minPatch,majPatch,discount,applyTax,travelOvr};
+    if(editQuote){
+      // Editing existing quote — keep id, quoteNumber, status, createdAt
+      onSave({...editQuote,customerName:name,customerPhone:phone,customerEmail:email,jobAddress:addr,city,state:st,zip,jobDate,validUntil:valid,notes,photos,items:calc.items,subtotal:calc.sub,discountAmt:calc.da,taxAmt:calc.taxAmt,total:calc.total,deposit:calc.deposit,_formData});
+    } else {
+      const yr=new Date().getFullYear(); const cnt=quotes.filter(q=>q.service===service).length+1;
+      onSave({id:Date.now().toString(),quoteNumber:`${SVC_PREFIXES[service]}-${yr}-${String(cnt).padStart(4,"0")}`,service,status:"draft",customerName:name,customerPhone:phone,customerEmail:email,jobAddress:addr,city,state:st,zip,jobDate,validUntil:valid,notes,photos,items:calc.items,subtotal:calc.sub,discountAmt:calc.da,taxAmt:calc.taxAmt,total:calc.total,deposit:calc.deposit,createdAt:new Date().toISOString(),_formData});
+    }
   };
 
   return (
     <div style={{padding:16}}>
       <div style={{display:"flex",alignItems:"center",gap:10,padding:"12px 14px",background:ac+"15",border:`1px solid ${ac}33`,borderRadius:12,marginBottom:16}}>
         <span style={{fontSize:24}}>{SVC_ICONS[service]}</span>
-        <div><div style={{fontSize:15,fontWeight:700,color:ac}}>New {SVC_NAMES[service]} Quote</div><div style={{fontSize:11,color:"#7D8590"}}>Fill in details to calculate your quote</div></div>
+        <div><div style={{fontSize:15,fontWeight:700,color:ac}}>{editQuote?"Edit":"New"} {SVC_NAMES[service]} Quote</div><div style={{fontSize:11,color:"#7D8590"}}>{editQuote?`Editing ${editQuote.quoteNumber}`:"Fill in details to calculate your quote"}</div></div>
       </div>
 
       <div style={{fontSize:11,fontWeight:700,color:"#7D8590",letterSpacing:"1px",marginBottom:10}}>CUSTOMER & JOB INFO</div>
@@ -458,7 +468,7 @@ function QuoteForm({service,pricing,quotes,onSave,onBack}) {
 
       <div style={{display:"flex",gap:10,paddingBottom:8}}>
         <button onClick={onBack} style={{flex:1,padding:14,borderRadius:12,background:"#21262D",border:"none",color:"#7D8590",fontSize:14,fontWeight:600,cursor:"pointer"}}>Cancel</button>
-        <button onClick={doSave} style={{flex:2,padding:14,borderRadius:12,background:`linear-gradient(135deg,${ac},${ac}bb)`,border:"none",color:"#fff",fontSize:14,fontWeight:700,cursor:"pointer",boxShadow:`0 4px 14px ${ac}44`}}>Save Quote →</button>
+        <button onClick={doSave} style={{flex:2,padding:14,borderRadius:12,background:`linear-gradient(135deg,${ac},${ac}bb)`,border:"none",color:"#fff",fontSize:14,fontWeight:700,cursor:"pointer",boxShadow:`0 4px 14px ${ac}44`}}>{editQuote?"Update Quote →":"Save Quote →"}</button>
       </div>
     </div>
   );
@@ -630,7 +640,7 @@ function PhotoLightbox({photos,index,onClose,onNav}) {
   );
 }
 
-function DetailScreen({quote,onPrint,onShare,onStatus,onDup}) {
+function DetailScreen({quote,onPrint,onShare,onStatus,onDup,onEdit}) {
   const [showMenu,setShowMenu]=useState(false);
   const [viewPhoto,setViewPhoto]=useState(null);
   const c=SVC_COLORS[quote.service];
@@ -700,6 +710,7 @@ function DetailScreen({quote,onPrint,onShare,onStatus,onDup}) {
       </div>
 
       <div style={{display:"flex",gap:8,marginBottom:8}}>
+        <button onClick={()=>onEdit(quote)} style={{flex:1,padding:12,borderRadius:12,background:"#F9731622",border:"1px solid #F9731655",color:"#F97316",fontSize:13,fontWeight:600,cursor:"pointer"}}>✏️ Edit</button>
         <button onClick={onPrint} style={{flex:1,padding:12,borderRadius:12,background:"#21262D",border:"none",color:"#E6EDF3",fontSize:13,fontWeight:600,cursor:"pointer"}}>🖨️ Print</button>
         <button onClick={()=>onDup(quote)} style={{flex:1,padding:12,borderRadius:12,background:"#21262D",border:"none",color:"#E6EDF3",fontSize:13,fontWeight:600,cursor:"pointer"}}>📋 Duplicate</button>
         <button onClick={()=>setShowMenu(!showMenu)} style={{flex:1,padding:12,borderRadius:12,background:c+"22",border:`1px solid ${c}55`,color:c,fontSize:13,fontWeight:600,cursor:"pointer"}}>🔄 Status</button>
