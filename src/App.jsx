@@ -83,6 +83,7 @@ export default function App() {
   };
   const deleteQuote = id => setQuotes(prev=>prev.filter(q=>q.id!==id));
   const editQuote = q => { setEditQ(q); navigate("edit"); };
+  const updateQuoteInPlace = q => setQuotes(prev=>prev.map(x=>x.id===q.id?q:x));
   const [editQ,setEditQ] = useState(null);
 
   if(printQ) return <PrintView quote={printQ} company={company} autoPrint={autoPrint} onClose={()=>{setPrintQ(null);setAutoPrint(false);}}/>;
@@ -110,7 +111,7 @@ export default function App() {
         {screen==="painting"  && <QuoteForm service="painting"   pricing={pricing.painting}   quotes={quotes} onSave={saveQuote} onBack={goBack}/>}
         {screen==="edit"      && editQ && <QuoteForm service={editQ.service} pricing={pricing[editQ.service]} quotes={quotes} onSave={saveQuote} onBack={goBack} editQuote={editQ}/>}
         {screen==="quotes"    && <DashboardScreen quotes={quotes} onSelect={id=>{setSelId(id);navigate("detail");}} onDup={dupQuote} onStatus={updateStatus} onDelete={deleteQuote}/>}
-        {screen==="detail"    && selQuote && <DetailScreen quote={selQuote} onPrint={()=>{setAutoPrint(true);setPrintQ(selQuote);}} onShare={()=>{setAutoPrint(false);setPrintQ(selQuote);}} onStatus={updateStatus} onDup={dupQuote} onEdit={editQuote}/>}
+        {screen==="detail"    && selQuote && <DetailScreen quote={selQuote} onPrint={()=>{setAutoPrint(true);setPrintQ(selQuote);}} onShare={()=>{setAutoPrint(false);setPrintQ(selQuote);}} onStatus={updateStatus} onDup={dupQuote} onEdit={editQuote} onUpdateQuote={updateQuoteInPlace}/>}
         {screen==="settings"  && <SettingsScreen pricing={pricing} setPricing={setPricing} company={company} setCompany={setCompany}/>}
       </main>
 
@@ -640,13 +641,32 @@ function PhotoLightbox({photos,index,onClose,onNav}) {
   );
 }
 
-function DetailScreen({quote,onPrint,onShare,onStatus,onDup,onEdit}) {
+function DetailScreen({quote,onPrint,onShare,onStatus,onDup,onEdit,onUpdateQuote}) {
   const [showMenu,setShowMenu]=useState(false);
   const [viewPhoto,setViewPhoto]=useState(null);
+  const [editIdx,setEditIdx]=useState(null);
+  const [editPrice,setEditPrice]=useState("");
   const c=SVC_COLORS[quote.service];
 
   const shareQuote = () => {
     onShare();
+  };
+
+  const saveItemPrice = (idx) => {
+    const newUp = parseFloat(editPrice);
+    if(isNaN(newUp)||newUp<0){setEditIdx(null);return;}
+    const newItems = quote.items.map((item,i)=>{
+      if(i!==idx) return item;
+      return {...item, up:newUp, total:item.qty*newUp};
+    });
+    const sub = newItems.reduce((s,i)=>s+i.total,0);
+    const da = quote.discountAmt||0;
+    const taxRate = quote.taxAmt>0&&quote.subtotal>0 ? (quote.taxAmt/((quote.subtotal||1)-da)) : 0;
+    const taxAmt = (sub-da)*taxRate;
+    const total = sub-da+taxAmt;
+    const depositPct = quote.deposit>0&&quote.total>0 ? quote.deposit/quote.total : 0.5;
+    onUpdateQuote({...quote, items:newItems, subtotal:sub, taxAmt, total, deposit:total*depositPct});
+    setEditIdx(null);
   };
   return (
     <div style={{padding:16}}>
@@ -684,12 +704,26 @@ function DetailScreen({quote,onPrint,onShare,onStatus,onDup,onEdit}) {
       )}
 
       <div style={{background:"#161B22",border:"1px solid #21262D",borderRadius:14,padding:14,marginBottom:12}}>
-        <div style={{fontSize:11,fontWeight:700,color:"#7D8590",textTransform:"uppercase",letterSpacing:"0.5px",marginBottom:10}}>Line Items</div>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+          <div style={{fontSize:11,fontWeight:700,color:"#7D8590",textTransform:"uppercase",letterSpacing:"0.5px"}}>Line Items</div>
+          <span style={{fontSize:10,color:"#7D859088"}}>Tap price to edit</span>
+        </div>
         {quote.items.map((item,i)=>(
           <div key={i} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"7px 0",borderBottom:"1px solid #21262D33"}}>
             <div style={{flex:1}}>
               <div style={{fontSize:13,color:"#E6EDF3"}}>{item.label}</div>
-              <div style={{fontSize:11,color:"#7D8590"}}>{fmt(item.qty)} {item.unit} × ${fmt(item.up)}</div>
+              {editIdx===i?(
+                <div style={{display:"flex",alignItems:"center",gap:6,marginTop:4}}>
+                  <span style={{fontSize:11,color:"#7D8590"}}>{fmt(item.qty)} {item.unit} × $</span>
+                  <input type="number" inputMode="decimal" value={editPrice} onChange={e=>setEditPrice(e.target.value)} autoFocus style={{width:70,padding:"4px 6px",background:"#0D1117",border:"1px solid #F97316",borderRadius:6,color:"#F97316",fontSize:13,fontWeight:700,outline:"none"}}/>
+                  <button onClick={()=>saveItemPrice(i)} style={{background:"#16A34A",border:"none",color:"#fff",padding:"4px 10px",borderRadius:6,fontSize:11,fontWeight:700,cursor:"pointer"}}>✓</button>
+                  <button onClick={()=>setEditIdx(null)} style={{background:"#21262D",border:"none",color:"#7D8590",padding:"4px 8px",borderRadius:6,fontSize:11,cursor:"pointer"}}>✕</button>
+                </div>
+              ):(
+                <div onClick={()=>{setEditIdx(i);setEditPrice(String(item.up));}} style={{fontSize:11,color:"#F97316",cursor:"pointer"}}>
+                  {fmt(item.qty)} {item.unit} × <span style={{textDecoration:"underline",textDecorationStyle:"dashed"}}>${fmt(item.up)}</span>
+                </div>
+              )}
             </div>
             <span style={{fontSize:13,fontWeight:600,color:"#E6EDF3",marginLeft:8}}>${fmt(item.total)}</span>
           </div>
