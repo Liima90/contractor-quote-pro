@@ -29,9 +29,9 @@ function Icon({name,size=20,color="currentColor",style={}}) {
 }
 
 const DEFAULT_PRICING = {
-  sanding: { sanding_rate: 2.50, stain_rate: 0.75, extra_coat_rate: 0.50, stairs_rate: 45, board_repair_rate: 25, furniture_moving_fee: 150, travel_fee: 75, minimum_job_fee: 350, deposit_pct: 50, tax_pct: 0 },
+  sanding: { sanding_rate: 2.50, stain_rate: 0.75, extra_coat_rate: 0.50, stairs_rate: 45, board_repair_rate: 25, furniture_moving_fee: 150, molding_rate: 2.50, travel_fee: 75, minimum_job_fee: 350, deposit_pct: 50, tax_pct: 0 },
   installing: { install_rate: 3.50, removal_rate: 1.25, subfloor_light_rate: 0.75, subfloor_heavy_rate: 1.50, moisture_barrier_rate: 0.45, trim_rate: 2.50, transition_strip_rate: 35, stairs_install_rate: 65, diagonal_multiplier: 1.10, herringbone_multiplier: 1.20, travel_fee: 75, minimum_job_fee: 500, deposit_pct: 50, tax_pct: 0 },
-  combo: { install_rate: 3.50, removal_rate: 1.25, subfloor_light_rate: 0.75, subfloor_heavy_rate: 1.50, moisture_barrier_rate: 0.45, trim_rate: 2.50, transition_strip_rate: 35, stairs_install_rate: 65, diagonal_multiplier: 1.10, herringbone_multiplier: 1.20, sanding_rate: 2.50, stain_rate: 0.75, extra_coat_rate: 0.50, stairs_sand_rate: 45, board_repair_rate: 25, furniture_moving_fee: 150, travel_fee: 75, minimum_job_fee: 650, deposit_pct: 50, tax_pct: 0 },
+  combo: { install_rate: 3.50, removal_rate: 1.25, subfloor_light_rate: 0.75, subfloor_heavy_rate: 1.50, moisture_barrier_rate: 0.45, trim_rate: 2.50, transition_strip_rate: 35, stairs_install_rate: 65, diagonal_multiplier: 1.10, herringbone_multiplier: 1.20, sanding_rate: 2.50, stain_rate: 0.75, extra_coat_rate: 0.50, stairs_sand_rate: 45, board_repair_rate: 25, furniture_moving_fee: 150, molding_rate: 2.50, travel_fee: 75, minimum_job_fee: 650, deposit_pct: 50, tax_pct: 0 },
   painting: { wall_rate: 1.50, ceiling_rate: 1.25, trim_rate: 2.00, door_rate: 85, window_rate: 65, primer_rate: 0.45, minor_patch_rate: 35, major_patch_rate: 85, extra_coat_rate: 0.35, travel_fee: 75, minimum_job_fee: 300, deposit_pct: 50, tax_pct: 0 },
 };
 const SVC_IMAGES = {
@@ -210,6 +210,7 @@ function QuoteForm({service,pricing,quotes,onSave,onBack,editQuote}) {
   // sanding
   const [sqft,setSqft]=useState(efd.sqft||""); const [stain,setStain]=useState(efd.stain||false); const [xCoats,setXCoats]=useState(efd.xCoats||"0");
   const [stairs,setStairs]=useState(efd.stairs||"0"); const [repairs,setRepairs]=useState(efd.repairs||"0"); const [furniture,setFurniture]=useState(efd.furniture||false);
+  const [moldingLf,setMoldingLf]=useState(efd.moldingLf||"0");
   // installing
   const [instSqft,setInstSqft]=useState(efd.instSqft||""); const [removeFloor,setRemoveFloor]=useState(efd.removeFloor||false); const [remSqft,setRemSqft]=useState(efd.remSqft||"");
   const [subfloor,setSubfloor]=useState(efd.subfloor||"none"); const [moisture,setMoisture]=useState(efd.moisture||false);
@@ -264,6 +265,7 @@ function QuoteForm({service,pricing,quotes,onSave,onBack,editQuote}) {
       const s=parseInt(stairs)||0; if(s>0) items.push({label:"Stair Sanding",qty:s,unit:"stairs",up:p.stairs_rate,total:s*p.stairs_rate});
       const r=parseInt(repairs)||0; if(r>0) items.push({label:"Board Repairs",qty:r,unit:"boards",up:p.board_repair_rate,total:r*p.board_repair_rate});
       if(furniture) items.push({label:"Furniture Moving",qty:1,unit:"flat",up:p.furniture_moving_fee,total:p.furniture_moving_fee});
+      const ml=parseFloat(moldingLf)||0; if(ml>0) items.push({label:"Molding",qty:ml,unit:"lin ft",up:p.molding_rate,total:ml*p.molding_rate});
     }
     if(service==="installing"){
       const sf=parseFloat(instSqft)||0;
@@ -302,6 +304,7 @@ function QuoteForm({service,pricing,quotes,onSave,onBack,editQuote}) {
       const ss=parseInt(stairs)||0; if(ss>0) items.push({label:"Stair Sanding",qty:ss,unit:"stairs",up:p.stairs_sand_rate,total:ss*p.stairs_sand_rate});
       const r=parseInt(repairs)||0; if(r>0) items.push({label:"Board Repairs",qty:r,unit:"boards",up:p.board_repair_rate,total:r*p.board_repair_rate});
       if(furniture) items.push({label:"Furniture Moving",qty:1,unit:"flat",up:p.furniture_moving_fee,total:p.furniture_moving_fee});
+      const ml2=parseFloat(moldingLf)||0; if(ml2>0) items.push({label:"Molding",qty:ml2,unit:"lin ft",up:p.molding_rate,total:ml2*p.molding_rate});
     }
     if(service==="painting"){
       const ws=parseFloat(wallSqft)||0; const nc=parseInt(coats)||2;
@@ -325,7 +328,7 @@ function QuoteForm({service,pricing,quotes,onSave,onBack,editQuote}) {
     const taxAmt=applyTax?(sub-da)*(p.tax_pct/100):0;
     const total=sub-da+taxAmt;
     return {items,sub,da,taxAmt,total,deposit:total*(p.deposit_pct/100)};
-  },[service,p,sqft,stain,xCoats,stairs,repairs,furniture,instSqft,removeFloor,remSqft,subfloor,moisture,trimFt,transStrips,pattern,instStairs,matIncl,matCost,wallSqft,coats,ceilings,ceilSqft,trimP,trimLf,doors,wins,primer,pxCoats,minPatch,majPatch,discount,applyTax,travelOvr]);
+  },[service,p,sqft,stain,xCoats,stairs,repairs,furniture,moldingLf,instSqft,removeFloor,remSqft,subfloor,moisture,trimFt,transStrips,pattern,instStairs,matIncl,matCost,wallSqft,coats,ceilings,ceilSqft,trimP,trimLf,doors,wins,primer,pxCoats,minPatch,majPatch,discount,applyTax,travelOvr]);
 
   const doSave = () => {
     const e={};
@@ -336,7 +339,7 @@ function QuoteForm({service,pricing,quotes,onSave,onBack,editQuote}) {
     if(service==="combo"&&!instSqft)e.sqft="Required";
     if(service==="painting"&&!wallSqft)e.sqft="Required";
     setErrs(e); if(Object.keys(e).length) return;
-    const _formData={sqft,stain,xCoats,stairs,repairs,furniture,instSqft,removeFloor,remSqft,subfloor,moisture,trimFt,transStrips,pattern,instStairs,matIncl,matCost,wallSqft,coats,ceilings,ceilSqft,trimP,trimLf,doors,wins,primer,pxCoats,minPatch,majPatch,discount,applyTax,travelOvr};
+    const _formData={sqft,stain,xCoats,stairs,repairs,furniture,moldingLf,instSqft,removeFloor,remSqft,subfloor,moisture,trimFt,transStrips,pattern,instStairs,matIncl,matCost,wallSqft,coats,ceilings,ceilSqft,trimP,trimLf,doors,wins,primer,pxCoats,minPatch,majPatch,discount,applyTax,travelOvr};
     if(editQuote){
       // Editing existing quote — keep id, quoteNumber, status, createdAt
       onSave({...editQuote,customerName:name,customerPhone:phone,customerEmail:email,jobAddress:addr,city,state:st,zip,jobDate,validUntil:valid,notes,photos,items:calc.items,subtotal:calc.sub,discountAmt:calc.da,taxAmt:calc.taxAmt,total:calc.total,deposit:calc.deposit,_formData});
@@ -384,6 +387,7 @@ function QuoteForm({service,pricing,quotes,onSave,onBack,editQuote}) {
           </div>
           <Field label="Board Repairs"><input style={inp} type="number" value={repairs} onChange={e=>setRepairs(e.target.value)} placeholder="0"/></Field>
           <Toggle label="Furniture Moving?" value={furniture} onChange={setFurniture}/>
+          <Field label="Molding (Lin. Ft.)"><input style={inp} type="number" value={moldingLf} onChange={e=>setMoldingLf(e.target.value)} placeholder="0"/></Field>
         </>}
         {service==="installing"&&<>
           <Field label="Total Square Feet *" error={errs.sqft}><input style={{...inp,...(errs.sqft?{borderColor:"#F87171"}:{})}} type="number" inputMode="decimal" value={instSqft} onChange={e=>setInstSqft(e.target.value)} placeholder="e.g. 1200"/></Field>
@@ -425,6 +429,7 @@ function QuoteForm({service,pricing,quotes,onSave,onBack,editQuote}) {
           </div>
           <Field label="Board Repairs"><input style={inp} type="number" value={repairs} onChange={e=>setRepairs(e.target.value)} placeholder="0"/></Field>
           <Toggle label="Furniture Moving?" value={furniture} onChange={setFurniture}/>
+          <Field label="Molding (Lin. Ft.)"><input style={inp} type="number" value={moldingLf} onChange={e=>setMoldingLf(e.target.value)} placeholder="0"/></Field>
         </>}
         {service==="painting"&&<>
           <Field label="Wall Square Feet *" error={errs.sqft}><input style={{...inp,...(errs.sqft?{borderColor:"#F87171"}:{})}} type="number" inputMode="decimal" value={wallSqft} onChange={e=>setWallSqft(e.target.value)} placeholder="e.g. 1500"/></Field>
@@ -905,9 +910,9 @@ function SettingsScreen({pricing,setPricing,company,setCompany}) {
   const inp={width:"80px",padding:"8px 10px",background:"#0D1117",border:"1px solid #30363D",borderRadius:8,color:"#E6EDF3",fontSize:13,outline:"none",textAlign:"right"};
   const inpFull={width:"100%",padding:"11px 12px",background:"#0D1117",border:"1px solid #30363D",borderRadius:10,color:"#E6EDF3",fontSize:14,outline:"none",boxSizing:"border-box"};
   const FIELDS={
-    sanding:[["sanding_rate","Sanding Rate","$/sqft"],["stain_rate","Stain Rate","$/sqft"],["extra_coat_rate","Extra Coat","$/sqft"],["stairs_rate","Stairs","$/stair"],["board_repair_rate","Board Repair","$/board"],["furniture_moving_fee","Furniture Moving","$ flat"],["travel_fee","Travel Fee","$ flat"],["minimum_job_fee","Minimum Job","$"],["deposit_pct","Deposit","%"],["tax_pct","Tax","%"]],
+    sanding:[["sanding_rate","Sanding Rate","$/sqft"],["stain_rate","Stain Rate","$/sqft"],["extra_coat_rate","Extra Coat","$/sqft"],["stairs_rate","Stairs","$/stair"],["board_repair_rate","Board Repair","$/board"],["furniture_moving_fee","Furniture Moving","$ flat"],["molding_rate","Molding","$/lin ft"],["travel_fee","Travel Fee","$ flat"],["minimum_job_fee","Minimum Job","$"],["deposit_pct","Deposit","%"],["tax_pct","Tax","%"]],
     installing:[["install_rate","Install Rate","$/sqft"],["removal_rate","Removal","$/sqft"],["subfloor_light_rate","Subfloor Light","$/sqft"],["subfloor_heavy_rate","Subfloor Heavy","$/sqft"],["moisture_barrier_rate","Moisture Barrier","$/sqft"],["trim_rate","Trim","$/lin ft"],["transition_strip_rate","Transition Strip","$/each"],["stairs_install_rate","Stair Install","$/stair"],["diagonal_multiplier","Diagonal Mult","×"],["herringbone_multiplier","Herringbone Mult","×"],["travel_fee","Travel Fee","$ flat"],["minimum_job_fee","Minimum Job","$"],["deposit_pct","Deposit","%"],["tax_pct","Tax","%"]],
-    combo:[["install_rate","Install Rate","$/sqft"],["sanding_rate","Sanding Rate","$/sqft"],["removal_rate","Removal","$/sqft"],["stain_rate","Stain Rate","$/sqft"],["extra_coat_rate","Extra Coat","$/sqft"],["subfloor_light_rate","Subfloor Light","$/sqft"],["subfloor_heavy_rate","Subfloor Heavy","$/sqft"],["moisture_barrier_rate","Moisture Barrier","$/sqft"],["trim_rate","Trim","$/lin ft"],["transition_strip_rate","Transition Strip","$/each"],["stairs_install_rate","Stair Install","$/stair"],["stairs_sand_rate","Stair Sand","$/stair"],["diagonal_multiplier","Diagonal Mult","×"],["herringbone_multiplier","Herringbone Mult","×"],["board_repair_rate","Board Repair","$/board"],["furniture_moving_fee","Furniture Moving","$ flat"],["travel_fee","Travel Fee","$ flat"],["minimum_job_fee","Minimum Job","$"],["deposit_pct","Deposit","%"],["tax_pct","Tax","%"]],
+    combo:[["install_rate","Install Rate","$/sqft"],["sanding_rate","Sanding Rate","$/sqft"],["removal_rate","Removal","$/sqft"],["stain_rate","Stain Rate","$/sqft"],["extra_coat_rate","Extra Coat","$/sqft"],["subfloor_light_rate","Subfloor Light","$/sqft"],["subfloor_heavy_rate","Subfloor Heavy","$/sqft"],["moisture_barrier_rate","Moisture Barrier","$/sqft"],["trim_rate","Trim","$/lin ft"],["transition_strip_rate","Transition Strip","$/each"],["stairs_install_rate","Stair Install","$/stair"],["stairs_sand_rate","Stair Sand","$/stair"],["diagonal_multiplier","Diagonal Mult","×"],["herringbone_multiplier","Herringbone Mult","×"],["board_repair_rate","Board Repair","$/board"],["furniture_moving_fee","Furniture Moving","$ flat"],["molding_rate","Molding","$/lin ft"],["travel_fee","Travel Fee","$ flat"],["minimum_job_fee","Minimum Job","$"],["deposit_pct","Deposit","%"],["tax_pct","Tax","%"]],
     painting:[["wall_rate","Wall Rate","$/sqft"],["ceiling_rate","Ceiling","$/sqft"],["trim_rate","Trim","$/lin ft"],["door_rate","Door","$/door"],["window_rate","Window","$/window"],["primer_rate","Primer","$/sqft"],["minor_patch_rate","Minor Patch","$/patch"],["major_patch_rate","Major Patch","$/patch"],["extra_coat_rate","Extra Coat","$/sqft"],["travel_fee","Travel Fee","$ flat"],["minimum_job_fee","Minimum Job","$"],["deposit_pct","Deposit","%"],["tax_pct","Tax","%"]],
   };
   return (
