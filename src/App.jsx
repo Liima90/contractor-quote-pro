@@ -209,6 +209,7 @@ function QuoteForm({service,pricing,quotes,onSave,onBack,editQuote}) {
   const [errs,setErrs]=useState({});
   // sanding
   const [sqft,setSqft]=useState(efd.sqft||""); const [stain,setStain]=useState(efd.stain||false); const [xCoats,setXCoats]=useState(efd.xCoats||"0");
+  const [xCoatArea,setXCoatArea]=useState(efd.xCoatArea||"whole"); const [xCoatSqft,setXCoatSqft]=useState(efd.xCoatSqft||"");
   const [stairs,setStairs]=useState(efd.stairs||"0"); const [repairs,setRepairs]=useState(efd.repairs||"0"); const [furniture,setFurniture]=useState(efd.furniture||false);
   const [moldingLf,setMoldingLf]=useState(efd.moldingLf||"0");
   // installing
@@ -261,7 +262,8 @@ function QuoteForm({service,pricing,quotes,onSave,onBack,editQuote}) {
       if(sf>0) items.push({label:"Floor Sanding",qty:sf,unit:"sqft",up:p.sanding_rate,total:sf*p.sanding_rate});
       if(stain&&sf>0) items.push({label:"Stain Application",qty:sf,unit:"sqft",up:p.stain_rate,total:sf*p.stain_rate});
       const ec=parseInt(xCoats)||0;
-      if(ec>0&&sf>0) items.push({label:"Extra Finish Coats",qty:sf*ec,unit:"sqft",up:p.extra_coat_rate,total:sf*ec*p.extra_coat_rate});
+      const ecSf=xCoatArea==="custom"?(parseFloat(xCoatSqft)||0):sf;
+      if(ec>0&&ecSf>0) items.push({label:"Extra Finish Coats"+(xCoatArea==="custom"?" (Partial)":""),qty:ecSf*ec,unit:"sqft",up:p.extra_coat_rate,total:ecSf*ec*p.extra_coat_rate});
       const s=parseInt(stairs)||0; if(s>0) items.push({label:"Stair Sanding",qty:s,unit:"stairs",up:p.stairs_rate,total:s*p.stairs_rate});
       const r=parseInt(repairs)||0; if(r>0) items.push({label:"Board Repairs",qty:r,unit:"boards",up:p.board_repair_rate,total:r*p.board_repair_rate});
       if(furniture) items.push({label:"Furniture Moving",qty:1,unit:"flat",up:p.furniture_moving_fee,total:p.furniture_moving_fee});
@@ -300,7 +302,8 @@ function QuoteForm({service,pricing,quotes,onSave,onBack,editQuote}) {
       if(sandSf>0) items.push({label:"Floor Sanding",qty:sandSf,unit:"sqft",up:p.sanding_rate,total:sandSf*p.sanding_rate});
       if(stain&&sandSf>0) items.push({label:"Stain Application",qty:sandSf,unit:"sqft",up:p.stain_rate,total:sandSf*p.stain_rate});
       const ec=parseInt(xCoats)||0;
-      if(ec>0&&sandSf>0) items.push({label:"Extra Finish Coats",qty:sandSf*ec,unit:"sqft",up:p.extra_coat_rate,total:sandSf*ec*p.extra_coat_rate});
+      const ecSf2=xCoatArea==="custom"?(parseFloat(xCoatSqft)||0):sandSf;
+      if(ec>0&&ecSf2>0) items.push({label:"Extra Finish Coats"+(xCoatArea==="custom"?" (Partial)":""),qty:ecSf2*ec,unit:"sqft",up:p.extra_coat_rate,total:ecSf2*ec*p.extra_coat_rate});
       const ss=parseInt(stairs)||0; if(ss>0) items.push({label:"Stair Sanding",qty:ss,unit:"stairs",up:p.stairs_sand_rate,total:ss*p.stairs_sand_rate});
       const r=parseInt(repairs)||0; if(r>0) items.push({label:"Board Repairs",qty:r,unit:"boards",up:p.board_repair_rate,total:r*p.board_repair_rate});
       if(furniture) items.push({label:"Furniture Moving",qty:1,unit:"flat",up:p.furniture_moving_fee,total:p.furniture_moving_fee});
@@ -328,7 +331,7 @@ function QuoteForm({service,pricing,quotes,onSave,onBack,editQuote}) {
     const taxAmt=applyTax?(sub-da)*(p.tax_pct/100):0;
     const total=sub-da+taxAmt;
     return {items,sub,da,taxAmt,total,deposit:total*(p.deposit_pct/100)};
-  },[service,p,sqft,stain,xCoats,stairs,repairs,furniture,moldingLf,instSqft,removeFloor,remSqft,subfloor,moisture,trimFt,transStrips,pattern,instStairs,matIncl,matCost,wallSqft,coats,ceilings,ceilSqft,trimP,trimLf,doors,wins,primer,pxCoats,minPatch,majPatch,discount,applyTax,travelOvr]);
+  },[service,p,sqft,stain,xCoats,xCoatArea,xCoatSqft,stairs,repairs,furniture,moldingLf,instSqft,removeFloor,remSqft,subfloor,moisture,trimFt,transStrips,pattern,instStairs,matIncl,matCost,wallSqft,coats,ceilings,ceilSqft,trimP,trimLf,doors,wins,primer,pxCoats,minPatch,majPatch,discount,applyTax,travelOvr]);
 
   const doSave = () => {
     const e={};
@@ -339,7 +342,7 @@ function QuoteForm({service,pricing,quotes,onSave,onBack,editQuote}) {
     if(service==="combo"&&!instSqft)e.sqft="Required";
     if(service==="painting"&&!wallSqft)e.sqft="Required";
     setErrs(e); if(Object.keys(e).length) return;
-    const _formData={sqft,stain,xCoats,stairs,repairs,furniture,moldingLf,instSqft,removeFloor,remSqft,subfloor,moisture,trimFt,transStrips,pattern,instStairs,matIncl,matCost,wallSqft,coats,ceilings,ceilSqft,trimP,trimLf,doors,wins,primer,pxCoats,minPatch,majPatch,discount,applyTax,travelOvr};
+    const _formData={sqft,stain,xCoats,xCoatArea,xCoatSqft,stairs,repairs,furniture,moldingLf,instSqft,removeFloor,remSqft,subfloor,moisture,trimFt,transStrips,pattern,instStairs,matIncl,matCost,wallSqft,coats,ceilings,ceilSqft,trimP,trimLf,doors,wins,primer,pxCoats,minPatch,majPatch,discount,applyTax,travelOvr};
     if(editQuote){
       // Editing existing quote — keep id, quoteNumber, status, createdAt
       onSave({...editQuote,customerName:name,customerPhone:phone,customerEmail:email,jobAddress:addr,city,state:st,zip,jobDate,validUntil:valid,notes,photos,items:calc.items,subtotal:calc.sub,discountAmt:calc.da,taxAmt:calc.taxAmt,total:calc.total,deposit:calc.deposit,_formData});
@@ -385,6 +388,10 @@ function QuoteForm({service,pricing,quotes,onSave,onBack,editQuote}) {
             <Field label="Extra Coats"><input style={inp} type="number" value={xCoats} onChange={e=>setXCoats(e.target.value)} placeholder="0"/></Field>
             <Field label="# Stairs"><input style={inp} type="number" value={stairs} onChange={e=>setStairs(e.target.value)} placeholder="0"/></Field>
           </div>
+          {parseInt(xCoats)>0&&<>
+            <Field label="Extra Coat Area"><select style={inp} value={xCoatArea} onChange={e=>setXCoatArea(e.target.value)}><option value="whole">Whole House</option><option value="custom">Custom Sq Ft (e.g. Kitchen only)</option></select></Field>
+            {xCoatArea==="custom"&&<Field label="Extra Coat Sq Ft"><input style={inp} type="number" inputMode="decimal" value={xCoatSqft} onChange={e=>setXCoatSqft(e.target.value)} placeholder="e.g. 200"/></Field>}
+          </>}
           <Field label="Board Repairs"><input style={inp} type="number" value={repairs} onChange={e=>setRepairs(e.target.value)} placeholder="0"/></Field>
           <Toggle label="Furniture Moving?" value={furniture} onChange={setFurniture}/>
           <Field label="Molding (Lin. Ft.)"><input style={inp} type="number" value={moldingLf} onChange={e=>setMoldingLf(e.target.value)} placeholder="0"/></Field>
@@ -427,6 +434,10 @@ function QuoteForm({service,pricing,quotes,onSave,onBack,editQuote}) {
             <Field label="Extra Coats"><input style={inp} type="number" value={xCoats} onChange={e=>setXCoats(e.target.value)} placeholder="0"/></Field>
             <Field label="# Stairs (Sand)"><input style={inp} type="number" value={stairs} onChange={e=>setStairs(e.target.value)} placeholder="0"/></Field>
           </div>
+          {parseInt(xCoats)>0&&<>
+            <Field label="Extra Coat Area"><select style={inp} value={xCoatArea} onChange={e=>setXCoatArea(e.target.value)}><option value="whole">Whole House</option><option value="custom">Custom Sq Ft (e.g. Kitchen only)</option></select></Field>
+            {xCoatArea==="custom"&&<Field label="Extra Coat Sq Ft"><input style={inp} type="number" inputMode="decimal" value={xCoatSqft} onChange={e=>setXCoatSqft(e.target.value)} placeholder="e.g. 200"/></Field>}
+          </>}
           <Field label="Board Repairs"><input style={inp} type="number" value={repairs} onChange={e=>setRepairs(e.target.value)} placeholder="0"/></Field>
           <Toggle label="Furniture Moving?" value={furniture} onChange={setFurniture}/>
           <Field label="Molding (Lin. Ft.)"><input style={inp} type="number" value={moldingLf} onChange={e=>setMoldingLf(e.target.value)} placeholder="0"/></Field>
